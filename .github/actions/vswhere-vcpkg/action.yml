@@ -1,0 +1,27 @@
+﻿name: 'VSWhere Vcpkg'
+description: 'Finds the root Vcpkg directory with Visual Studio installation'
+
+outputs:
+  vcpkg_root:
+    description: 'The root directory of Vcpkg.'
+    value: ${{ steps.vswhere_vcpkg.outputs.vcpkg_root }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Find vcpkg path using vswhere
+      id: vswhere_vcpkg
+      shell: pwsh
+      run: |
+        $vs_path = & vswhere -latest -property resolvedInstallationPath
+        $vcpkg_root = Join-Path -Path $vs_path -ChildPath "VC\vcpkg"
+        $vcpkg_path = Join-Path -Path $vcpkg_root -ChildPath "vcpkg.exe"
+
+        if (-not (Test-Path -Path $vcpkg_path)) {
+          Write-Host "Error: vcpkg.exe not found at the expected path: $vcpkg_path"
+          exit 1
+        }
+
+        & "$vcpkg_path" --version
+
+        echo "vcpkg_root=$vcpkg_root" | Out-File -FilePath $env:GITHUB_OUTPUT -Append

@@ -1,0 +1,61 @@
+﻿name: Pull Request to Branch Main
+
+on:
+  pull_request:
+    branches:
+      - main
+    
+jobs:
+  format_check:
+    name: Check Code Formatting
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          
+      - name: Add MSBuild and Developer Command Prompt to PATH
+        uses: microsoft/setup-msbuild@v2
+        with: 
+          vs-version: '[17.0,)'
+
+      - name: VSWhere Vcpkg
+        id: vswhere_vcpkg
+        uses: ./.github/actions/vswhere-vcpkg/
+
+      - name: Find clang-format and run check
+        run: |
+          $env:VCPKG_ROOT = "${{ steps.vswhere_vcpkg.outputs.vcpkg_root }}"
+          .\Housekeeper\housekeeper.ps1 -CheckFormat -Verbose
+        shell: pwsh
+        
+  build:
+    name: Build Project
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          
+      - name: Add MSBuild and Developer Command Prompt to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '[17.0,)'
+
+      - name: VSWhere Vcpkg
+        id: vswhere_vcpkg
+        uses: ./.github/actions/vswhere-vcpkg/  
+        
+      - name: Build Project (Debug)
+        run: |
+          $env:VCPKG_ROOT = "${{ steps.vswhere_vcpkg.outputs.vcpkg_root }}"
+          .\Housekeeper\housekeeper.ps1 -Build -Verbose -Config Debug
+        shell: pwsh
+
+      - name: Build Project (Release)
+        run: |
+          $env:VCPKG_ROOT = "${{ steps.vswhere_vcpkg.outputs.vcpkg_root }}"
+          .\Housekeeper\housekeeper.ps1 -Build -Verbose -Config Release
+        shell: pwsh 
