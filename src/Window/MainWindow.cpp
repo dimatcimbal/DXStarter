@@ -1,5 +1,5 @@
 ﻿#include "MainWindow.h"
-#include "Debug/Debug.h"
+#include "Logging/Logging.h"
 
 bool MainWindow::Create(std::unique_ptr<MainWindow> &OutWindow) {
 
@@ -29,8 +29,8 @@ bool MainWindow::Create(std::unique_ptr<MainWindow> &OutWindow) {
 
   ATOM wcAtom = RegisterClassEx(&wc);
   if (wcAtom == 0) {
-    DEBUG_ERROR(L"Failed to register window class as %s",
-                std::to_wstring(GetLastError()).c_str());
+    LOG_ERROR(L"Failed to register window class as %ls",
+              std::to_wstring(GetLastError()).c_str());
     return false;
   }
 
@@ -41,7 +41,7 @@ bool MainWindow::Create(std::unique_ptr<MainWindow> &OutWindow) {
       // Window class name
       MAIN_CLASS_NAME,
 
-      // Windoww title
+      // Window title
       L"DXStarter",
 
       // Window styles
@@ -66,8 +66,8 @@ bool MainWindow::Create(std::unique_ptr<MainWindow> &OutWindow) {
       nullptr);
 
   if (hWnd == nullptr) {
-    DEBUG_ERROR(L"CreateWindowEx failed. Error: %s",
-                std::to_wstring(GetLastError()).c_str());
+    LOG_ERROR(L"CreateWindowEx failed. Error: %ls",
+              std::to_wstring(GetLastError()).c_str());
     return false;
   }
 

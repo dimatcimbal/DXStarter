@@ -17,18 +17,20 @@ public:
    *
    * @param OutWindow A std::unique pointer that will hold the created
    * MainWindow instance.
-   * @return
+   * @return true if the main window was successfully created and OutWindow is
+   * set; false otherwise.
    */
   static bool Create(std::unique_ptr<MainWindow> &OutWindow);
 
   /**
    * Standard Windows message handler.
    *
-   * @param hWnd
-   * @param uMsg
-   * @param wParam
-   * @param lParam
-   * @return
+   * @param hWnd    Handle to the window.
+   * @param uMsg    Message identifier.
+   * @param wParam  Additional message information (depends on message).
+   * @param lParam  Additional message information (depends on message).
+   * @return The result of message processing. The meaning of the return value
+   * depends on the message sent.
    */
   static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam,
                                      LPARAM lParam);
