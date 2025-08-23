@@ -26,5 +26,17 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
     # user input, window management, etc.
-    user32 
+    user32
+    # DX dependencies
+    d3d12
+    dxgi
+    dxguid
+)
+
+# compile with NOMINMAX and UNICODE,_UNICODE defined
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    # Exclude min and max macro
+    NOMINMAX 
+    # Define UNICODE and _UNICODE to use wide-character versions of WinAPI functions in the macros like OutputDebugString
+    UNICODE _UNICODE
 )
