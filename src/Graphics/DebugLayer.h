@@ -1,7 +1,8 @@
 #pragma once
 
-#include <memory>
 #include <wrl/client.h>
+
+#include <memory>
 
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
@@ -11,7 +12,7 @@
  * It provides functionality to create debug layers and report live DirectX objects.
  */
 class DebugLayer {
-  public:
+   public:
     /**
      * Factory method to create a DebugLayer instance.
      *
@@ -43,7 +44,7 @@ class DebugLayer {
     void ReportLiveObjects();
 
 #ifdef _DEBUG
-  private:
+   private:
     // DirectX debug layer interface
     Microsoft::WRL::ComPtr<ID3D12Debug6> mD3DDebug;
 

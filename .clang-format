@@ -1,39 +1,19 @@
 ﻿# .clang-format
----
-Language: Cpp
-SortIncludes: true
-IncludeCategories:
-  - Regex: '^<(tchar\.h|windows\.h)>'
-    Priority: 1
-  - Regex: '^<gdiplus\.h>'
-    Priority: 2
-  - Regex: '^<.*>'
-    Priority: 3
-  - Regex: '^".*"'
-    Priority: 4
+BasedOnStyle: Google
 
-# --- Common Formatting Options (Adjust as needed) ---
-# It's good practice to base your style on an existing one and then customize.
-# BasedOnStyle: Google # Or LLVM, Mozilla, WebKit, Microsoft, etc.
-
-# General Indentation
+# Indentation
 IndentWidth: 4
-TabWidth: 4
-UseTab: Never # Use spaces for indentation
+
+# Includes
+SortIncludes: CaseSensitive
 
 # Line Breaking
-ColumnLimit: 100 # Maximum characters per line, adjust to your preference
-BreakBeforeBraces: Attach # Example: if (true) { ... }
+ColumnLimit: 100
 AlwaysBreakBeforeMultilineStrings: true
-BinPackParameters: false
-CompactNamespaces: false
 
 # Pointer and Reference Alignment
-PointerAlignment: Left # This places the '*' next to the type (e.g., int* p;)
-ReferenceAlignment: Left # You might also want this for references (e.g., int& r;), though Right is also common.
+PointerAlignment: Left
+ReferenceAlignment: Left
 
-# Other common settings
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortCaseLabelsOnASingleLine: false
+# Single line placement
+AllowShortFunctionsOnASingleLine: Empty

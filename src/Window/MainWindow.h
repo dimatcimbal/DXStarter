@@ -1,9 +1,10 @@
 ﻿#pragma once
 
-#include "Graphics/GraphicsContext.h"
-
 #include <Windows.h>
+
 #include <memory>
+
+#include "Graphics/GraphicsContext.h"
 
 // Main window class name for registration
 const static LPCWSTR MAIN_CLASS_NAME = L"DXStarterMainWindow";
@@ -17,7 +18,7 @@ static constexpr int DEFAULT_WINDOW_HEIGHT = 720;
  * It handles window creation, message processing, and main application loop.
  */
 class MainWindow {
-  public:
+   public:
     /**
      * Factory method to create the main application window.
      *
@@ -38,13 +39,12 @@ class MainWindow {
      */
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-    MainWindow(HWND hWnd,
-               HMODULE hInstance,
-               ATOM wcAtom,
+    MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom,
                std::unique_ptr<GraphicsContext> pGraphicsContext)
-        : mHWnd(hWnd), mHInstance(hInstance), mWcAtom(wcAtom),
+        : mHWnd(hWnd),
+          mHInstance(hInstance),
+          mWcAtom(wcAtom),
           mGraphicsContext(std::move(pGraphicsContext)) {
-
         // Display and update the main window.
         ShowWindow(hWnd, SW_SHOWDEFAULT);
         UpdateWindow(hWnd);
@@ -71,7 +71,7 @@ class MainWindow {
 
     int Run();
 
-  private:
+   private:
     std::unique_ptr<GraphicsContext> mGraphicsContext;
 
     bool mIsMainLoopRunning{true};

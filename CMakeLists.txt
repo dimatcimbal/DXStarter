@@ -40,3 +40,4 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     # Define UNICODE and _UNICODE to use wide-character versions of WinAPI functions in the macros like OutputDebugString
     UNICODE _UNICODE
 )
+
