@@ -1,8 +1,8 @@
 ﻿#include "MainWindow.h"
+
 #include "Logging/Logging.h"
 
 bool MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow) {
-
     // Handler to the module owning the window
     HMODULE hInstance = GetModuleHandle(nullptr);
 
@@ -29,8 +29,7 @@ bool MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow) {
 
     ATOM wcAtom = RegisterClassEx(&wc);
     if (wcAtom == 0) {
-        LOG_ERROR(L"Failed to register window class as %ls",
-                  std::to_wstring(GetLastError()).c_str());
+        LOG_ERROR(L"Failed to register window class. Error code: %d\n", GetLastError());
         return false;
     }
 
@@ -70,32 +69,31 @@ bool MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow) {
         return false;
     }
 
-    std::unique_ptr<GraphicsContext> OutGraphicsContext;
-    if (!GraphicsContext::Create(OutGraphicsContext)) {
+    std::unique_ptr<GraphicsContext> outGraphicsContext;
+    if (!GraphicsContext::Create(outGraphicsContext)) {
         LOG_ERROR(L"Failed to create GraphicsContext.\n");
         return false;
     }
 
     OutWindow =
-        std::make_unique<MainWindow>(hWnd, hInstance, wcAtom, std::move(OutGraphicsContext));
+        std::make_unique<MainWindow>(hWnd, hInstance, wcAtom, std::move(outGraphicsContext));
     return true;
 }
 
 LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-
     switch (uMsg) {
-    case WM_CLOSE:
-        // The user wants to close the window.
-        DestroyWindow(hWnd);
-        return 0;
+        case WM_CLOSE:
+            // The user wants to close the window.
+            DestroyWindow(hWnd);
+            return 0;
 
-    case WM_DESTROY:
-        // The window is being destroyed. Post WM_QUIT to exit the application loop.
-        PostQuitMessage(0);
-        return 0;
+        case WM_DESTROY:
+            // The window is being destroyed. Post WM_QUIT to exit the application loop.
+            PostQuitMessage(0);
+            return 0;
 
-    default:
-        return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        default:
+            return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 }
 
@@ -104,7 +102,6 @@ int MainWindow::Run() {
 
     // The main application loop
     while (mIsMainLoopRunning) {
-
         // Windows message loop (user input)
         while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);

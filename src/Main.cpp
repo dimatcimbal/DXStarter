@@ -1,7 +1,8 @@
 ﻿#include <Windows.h>
-#include "Window/MainWindow.h"
 
 #include <memory>
+
+#include "Window/MainWindow.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     UNREFERENCED_PARAMETER(hInstance);
@@ -10,11 +11,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UNREFERENCED_PARAMETER(nCmdShow);
 
     // Creates the main window.
-    std::unique_ptr<MainWindow> MainWindow;
-    if (!MainWindow::Create(MainWindow)) {
+    std::unique_ptr<MainWindow> mainWindow;
+    if (!MainWindow::Create(mainWindow)) {
         MessageBox(nullptr, L"Failed to create main window", L"Error", MB_OK | MB_ICONERROR);
         return -1;
     }
 
-    return MainWindow->Run();
+    return mainWindow->Run();
 }

@@ -1,11 +1,16 @@
 # Development Steps
 
-## Graphics Context (git:dx/01-graphics-context)
+## Graphics Context and Device (git:dx/01-graphics-context)
 
-* Create GraphicContext class that encaps DX12 device, command queue, swap chain, and render target views.
+* Create GraphicContext class that encaps DX12 device, command queue, etc.
     1. Create DebugLayer class initializing it members with `D3D12GetDebugInterface`, `ID3D12Debug::EnableDebugLayer`
        and `DXGIGetDebugInterface1`. Customize the DebugLayer destructor to report any live objects remaining.
-    2. Ensure the DebugLayer instance gets destroyed last to report on remaining live objects.
+       * Ensure the DebugLayer instance gets destroyed last to report on remaining live objects.
+    2. Create Device class that initializes DXGI factory and D3D12 device; and is a factory for other DX12 objects.
+       * Update `CMakeLists.txt` to include DX dependencies (`d3d12`, `dxgi`, `dxguid`)
+       * Create a factory method `Device::Create` which loops over the available adapters and selects the first one that matches the
+         criteria (is hardware, supports the requested feature level, has the highest video memory).
+    
 
 ## Main Window (git:window/00-main-window)
 

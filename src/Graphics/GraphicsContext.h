@@ -2,13 +2,17 @@
 #include <memory>
 
 #include "DebugLayer.h"
+#include "Device.h"
+
+// Graphics configs below
+constexpr D3D_FEATURE_LEVEL GRAPHICS_FEATURE_LEVEL = D3D_FEATURE_LEVEL_12_0;
 
 /**
  * GraphicsContext manages the DirectX graphics pipeline.
  * It initializes and maintains the graphics context, including debug layers.
  */
 class GraphicsContext {
-  public:
+   public:
     /**
      * Factory method to create a GraphicsContext instance.
      *
@@ -31,8 +35,10 @@ class GraphicsContext {
      */
     bool Draw();
 
-  private:
+   private:
     // IMPORTANT. Keep the DebugLayer at the very top to ensure it is destroyed last.
     // It reports on LIVE DX objects before the context is destroyed.
     std::unique_ptr<DebugLayer> mDebugLayer;
+
+    std::unique_ptr<Device> mDevice;
 };
