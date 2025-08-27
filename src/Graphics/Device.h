@@ -3,6 +3,7 @@
 
 #include <memory>
 
+#include "CommandQueue.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
 
@@ -26,6 +27,11 @@ class Device {
     ~Device() {
         LOG_INFO(L"Freeing Device.\n");
     };
+
+    // Class members
+    bool CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type, D3D12_COMMAND_QUEUE_PRIORITY Priority,
+                            D3D12_COMMAND_QUEUE_FLAGS QueueFlags, D3D12_FENCE_FLAGS FenceFlags,
+                            std::unique_ptr<CommandQueue>& OutQueue) const;
 
     // Deleted copy constructor and assignment operator to prevent copying
     Device(Device& copy) = delete;

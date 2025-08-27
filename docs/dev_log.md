@@ -1,5 +1,14 @@
 # Development Steps
 
+## Command Queue (git:dx/02-command-queue)
+
+* Create CommandQueue class that wraps a ID3D12CommandQueue.
+    1. Create a factory method `Device::CreateCommandQueue` that initializes and returns `CommandQueue` object. 
+    2. Implement `CommandQueue::ExecuteCommandList` to execute a given command list.
+    3. Implement `CommandQueue::NextFenceValue` to increment and return the next fence value.
+    4. Implement `CommandQueue::WaitForFenceValue` a blocking function to wait until the fence reaches a specified value.
+
+
 ## Graphics Context and Device (git:dx/01-graphics-context)
 
 * Create GraphicContext class that encaps DX12 device, command queue, etc.

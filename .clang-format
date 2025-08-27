@@ -15,5 +15,8 @@ AlwaysBreakBeforeMultilineStrings: true
 PointerAlignment: Left
 ReferenceAlignment: Left
 
-# Single line placement
+# Args
+BinPackParameters: true
+
+# Short expressions placement
 AllowShortFunctionsOnASingleLine: Empty
