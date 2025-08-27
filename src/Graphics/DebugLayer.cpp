@@ -27,15 +27,22 @@ bool DebugLayer::Create(std::unique_ptr<DebugLayer>& OutDebugLayer) {
 
 void DebugLayer::ReportLiveObjects() {
 #ifdef _DEBUG
-    if (mD3DDebug) {
+    if (mDXGIDebug) {
         LOG_INFO(L"Reporting LIVE D3D12 objects:\n");
 
-        mDXGIDebug->ReportLiveObjects(
-            // Report all live objects
-            DXGI_DEBUG_ALL,
-            // Report in detail but ignore internal objects
-            static_cast<DXGI_DEBUG_RLO_FLAGS>(DXGI_DEBUG_RLO_DETAIL |
-                                              DXGI_DEBUG_RLO_IGNORE_INTERNAL));
+        // Report in detail but ignore internal objects
+        DXGI_DEBUG_RLO_FLAGS DebugFlags = static_cast<DXGI_DEBUG_RLO_FLAGS>(
+            DXGI_DEBUG_RLO_DETAIL | DXGI_DEBUG_RLO_IGNORE_INTERNAL);
+
+        if FAILED (mDXGIDebug->ReportLiveObjects(
+                       // Report all live objects
+                       DXGI_DEBUG_ALL,
+                       // with the specified flags
+                       DebugFlags)) {
+            LOG_ERROR(L"Failed to report live objects.\n");
+        }
+    } else {
+        LOG_INFO(L"DXGI Debug interface is not initialized.\n");
     }
 #endif
 }

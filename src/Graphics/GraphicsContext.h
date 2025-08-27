@@ -21,8 +21,15 @@ class GraphicsContext {
      */
     static bool Create(std::unique_ptr<GraphicsContext>& OutContext);
 
-    GraphicsContext(std::unique_ptr<DebugLayer>&& DebugLayer)
-        : mDebugLayer(std::move(DebugLayer)) {};
+    GraphicsContext(std::unique_ptr<CommandQueue>&& CommandQueue, std::unique_ptr<Device> Device,
+                    std::unique_ptr<DebugLayer>&& DebugLayer)
+        : mCommandQueue(std::move(CommandQueue)),
+          mDevice(std::move(Device)),
+          mDebugLayer(std::move(DebugLayer)) {};
+
+    ~GraphicsContext() {
+        LOG_INFO(L"Freeing GraphicsContext.\n");
+    }
 
     // Deleted copy constructor and assignment operator to prevent copying
     GraphicsContext(GraphicsContext& copy) = delete;
@@ -40,5 +47,6 @@ class GraphicsContext {
     // It reports on LIVE DX objects before the context is destroyed.
     std::unique_ptr<DebugLayer> mDebugLayer;
 
+    std::unique_ptr<CommandQueue> mCommandQueue;
     std::unique_ptr<Device> mDevice;
 };
