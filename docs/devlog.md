@@ -1,5 +1,14 @@
 # Development Steps
 
+## Decoupling graphics context updates (git:window/02-decouple-graphics-context-updates)
+
+* Add `WindowState` class to centralize graphics context updates, decoupling immediate window message handling from resource updates.
+    1. Implement deferred state update pattern: window events set flags/state in App, processed in `WindowState::Update()`.
+    2. Update `Window::Create(GraphicsContext* GraphicsContext, Window*& OutWindow)` factory method to initialize an instance of `WindowState`.
+    3. Add `WindowState::OnCreate(HWND hWnd)` and `WindowState::OnResize(int NewWidth, int NewHeight)` to record state for next update.
+    4. Add `WindowState::Stop()` to signal clean exit; the main application loop calls `WindowState::Update()` until exit.
+    5. `MainState` manages graphics context lifecycle and main loop control.
+    6. Graphics context changes (swap chain creation, resizing) performed once per frame, even if multiple window messages received.
 
 ## Main Window Pointer (git:window/01-window-message-handler)
 

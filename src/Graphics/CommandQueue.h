@@ -31,7 +31,7 @@ class CommandQueue {
     }
 
     // Prohibit copying
-    CommandQueue(CommandQueue& copy) = delete;
+    CommandQueue(const CommandQueue& copy) = delete;
     CommandQueue& operator=(const CommandQueue& copy) = delete;
 
    private:
