@@ -31,6 +31,16 @@ bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
     return true;
 }
 
+bool GraphicsContext::OnWindowCreate(HWND hWnd, uint32_t Width, uint32_t Height) {
+    LOG_INFO(L"GraphicsContext::OnWindowCreate is being called\n");
+    return true;
+}
+
+bool GraphicsContext::OnWindowResize(uint32_t Width, uint32_t Height) {
+    LOG_INFO(L"GraphicsContext::OnWindowResize is being called\n");
+    return true;
+}
+
 bool GraphicsContext::Draw() {
     return true;
 }

@@ -42,6 +42,10 @@ class GraphicsContext {
      */
     bool Draw();
 
+    // Window event handlers
+    bool OnWindowCreate(HWND hWnd, uint32_t Width = 320, uint32_t Height = 240);
+    bool OnWindowResize(uint32_t Width, uint32_t Height);
+
    private:
     // IMPORTANT. Keep the DebugLayer at the very top to ensure it is destroyed last.
     // It reports on LIVE DX objects before the context is destroyed.
