@@ -25,7 +25,7 @@ class GraphicsContext {
                     std::unique_ptr<DebugLayer>&& DebugLayer)
         : mCommandQueue(std::move(CommandQueue)),
           mDevice(std::move(Device)),
-          mDebugLayer(std::move(DebugLayer)) {};
+          mDebugLayer(std::move(DebugLayer)) {}
 
     ~GraphicsContext() {
         LOG_INFO(L"Freeing GraphicsContext.\n");
@@ -43,8 +43,8 @@ class GraphicsContext {
     bool Draw();
 
     // Window event handlers
-    bool OnWindowCreate(HWND hWnd, uint32_t Width = 320, uint32_t Height = 240);
-    bool OnWindowResize(uint32_t Width, uint32_t Height);
+    bool CreateSwapChain(HWND hWnd, uint32_t Width = 320, uint32_t Height = 240);
+    bool ResizeSwapChain(uint32_t Width, uint32_t Height);
 
    private:
     // IMPORTANT. Keep the DebugLayer at the very top to ensure it is destroyed last.

@@ -31,13 +31,14 @@ bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
     return true;
 }
 
-bool GraphicsContext::OnWindowCreate(HWND hWnd, uint32_t Width, uint32_t Height) {
-    LOG_INFO(L"GraphicsContext::OnWindowCreate is being called\n");
+bool GraphicsContext::CreateSwapChain(HWND hWnd, uint32_t Width, uint32_t Height) {
+    LOG_INFO(L"\tGraphicsContext::CreateSwapChain is being called for HWND: 0x%p\n", hWnd);
     return true;
 }
 
-bool GraphicsContext::OnWindowResize(uint32_t Width, uint32_t Height) {
-    LOG_INFO(L"GraphicsContext::OnWindowResize is being called\n");
+bool GraphicsContext::ResizeSwapChain(uint32_t Width, uint32_t Height) {
+    LOG_INFO(L"\tGraphicsContext::ResizeSwapChain is being called for Width: %d, Height: %d\n",
+             Width, Height);
     return true;
 }
 
