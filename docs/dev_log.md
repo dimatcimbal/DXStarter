@@ -1,5 +1,18 @@
 # Development Steps
 
+
+## Main Window Pointer (git:window/01-window-message-handler)
+
+* Implement window message handlers to manage window creation and resizing.
+    1. Refactor the main window `MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow)` factory method to store a pointer to the created window instance in lpParam.
+    2. Update the `WindowProc` to handle `WM_NCCREATE`, retrieve the window instance pointer from the `lpParam` data, and set it on the user data with `SetWindowLongPtr`.
+    3. In the `WindowProc` retrieve the window instance pointer with `GetWindowLongPtr` in subsequent messages and invoke the corresponding non-static message handlers.
+    4. Handle `WM_CREATE` with the `MainWindow::OnCreate(HWND hWnd)` event handler.
+        * Forward the call to `GraphicsContext::OnWindowCreate(HWND hWnd, uint32_t Width, uint32_t Height)` to initialize necessary graphics resources, like a swap chain.
+    5. Handle `WM_SIZE` with the `MainWindow::OnResize(int Width, int Height)` event handler.
+        * Forward the call to `GraphicsContext::OnWindowResize(uint32_t Width, uint32_t Height)` to update graphics resources to match the new window size.
+
+
 ## Command Queue (git:dx/02-command-queue)
 
 * Create CommandQueue class that wraps a ID3D12CommandQueue.

@@ -69,6 +69,14 @@ class MainWindow {
     MainWindow(const MainWindow&) = delete;
     MainWindow& operator=(const MainWindow&) = delete;
 
+    // Provides MainWindow instance context (pThis) to the static WindowProc.
+    LRESULT OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+    // Window event handlers
+    bool OnCreate(HWND hWnd) const;
+    bool OnResize(int Width, int Height) const;
+
+    // The main loop
     int Run();
 
    private:
