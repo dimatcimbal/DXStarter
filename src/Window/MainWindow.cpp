@@ -33,6 +33,15 @@ bool MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow) {
         return false;
     }
 
+    // Create the MainWindow instance before creating the window
+    std::unique_ptr<GraphicsContext> pGraphicsContext;
+    if (!GraphicsContext::Create(pGraphicsContext)) {
+        LOG_ERROR(L"Failed to create GraphicsContext.\n");
+        return false;
+    }
+    // Create a temporary MainWindow instance to pass as lpParam
+    std::unique_ptr<MainWindow> tempWindow = std::make_unique<MainWindow>(nullptr, hInstance, wcAtom, std::move(pGraphicsContext));
+
     HWND hWnd = CreateWindowEx(
         // Extended styles
         WS_EX_OVERLAPPEDWINDOW | WS_EX_APPWINDOW,
@@ -60,41 +69,109 @@ bool MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow) {
 
         // Module instance
         hInstance,
-
-        // Additional data
-        nullptr);
+        
+        // Additional data; passing pointer as lpParam see WM_NCCREATE handling in WindowProc
+        tempWindow.get()); 
 
     if (hWnd == nullptr) {
         LOG_ERROR(L"CreateWindowEx failed. Error: %ls", std::to_wstring(GetLastError()).c_str());
         return false;
     }
 
-    std::unique_ptr<GraphicsContext> outGraphicsContext;
-    if (!GraphicsContext::Create(outGraphicsContext)) {
-        LOG_ERROR(L"Failed to create GraphicsContext.\n");
-        return false;
-    }
-
-    OutWindow =
-        std::make_unique<MainWindow>(hWnd, hInstance, wcAtom, std::move(outGraphicsContext));
+    // Now update the hWnd in the MainWindow instance
+    tempWindow->mHWnd = hWnd;
+    OutWindow = std::move(tempWindow);
     return true;
 }
 
+// IMPORTANT! Requires MainWindow instance pointer to be set in the user data (GWLP_USERDATA)
+// This function simply forwards the message to the instance handler.
 LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+    MainWindow* pThis;
+    
+    if (uMsg == WM_NCCREATE) {
+        // If WM_NCCREATE get the 'this' pointer from lpCreateParams
+        // and store it in user data.
+        CREATESTRUCT* pCreateStruct = reinterpret_cast<CREATESTRUCT*>(lParam);
+        pThis = reinterpret_cast<MainWindow*>(pCreateStruct->lpCreateParams);
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
+    } else {
+        // Get the 'this' pointer from user data
+        pThis = reinterpret_cast<MainWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+    }
+    
+    if (pThis) {
+        return pThis->OnWindowEvent(hWnd, uMsg, wParam, lParam);
+    }
+
+    // Fallback
+    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+LRESULT MainWindow::OnWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
-        case WM_CLOSE:
+        case WM_CREATE: {
+            // Window is being created
+            if (!OnCreate(hWnd)) {
+                LOG_ERROR(L"Failed to initialize window, destroying window and exiting application.\n");
+                PostQuitMessage(-1);
+                return -1;
+            }
+            return 0;
+        }
+        case WM_SIZE: {
+            int width = LOWORD(lParam);
+            int height = HIWORD(lParam);
+            if (!OnResize(width, height)) {
+                LOG_ERROR(L"Failed to resize window, destroying window and exiting application.\n");
+                DestroyWindow(hWnd);
+                PostQuitMessage(-1);
+                return -1;
+            }
+            return 0;
+        }
+        case WM_CLOSE: {
             // The user wants to close the window.
             DestroyWindow(hWnd);
             return 0;
-
-        case WM_DESTROY:
+        }
+        case WM_DESTROY: {
             // The window is being destroyed. Post WM_QUIT to exit the application loop.
             PostQuitMessage(0);
             return 0;
-
-        default:
+        }
+        default: {
             return DefWindowProc(hWnd, uMsg, wParam, lParam);
+        }
     }
+}
+
+bool MainWindow::OnCreate(HWND hWnd) const {
+    LOG_INFO(L"Creating main window.\n");
+
+    // if (!mGraphicsContext->SetDisplay(hWnd)) {
+    //     LOG_ERROR(L"Failed to set display for GraphicsContext.\n");
+    //     return false;
+    // }
+    return true;
+}
+
+bool MainWindow::OnResize(int Width, int Height) const {
+    if (Width == 0 || Height == 0) {
+        // Window is minimized or has zero area; ignore resize
+        return true;
+    }
+
+    uint32_t NewWidth = static_cast<uint32_t>(Width);
+    uint32_t NewHeight = static_cast<uint32_t>(Height);
+    LOG_INFO(L"Resizing window to %u x %u\n", NewWidth, NewHeight);
+
+    // if (!mGraphicsContext->Resize(NewWidth, NewHeight)) {
+    //     LOG_ERROR(L"Failed to resize graphics context.\n");
+    //     return false;
+    // }
+
+    return true;
 }
 
 int MainWindow::Run() {
@@ -116,7 +193,13 @@ int MainWindow::Run() {
         // Scene update and the rendering part
         if (mIsMainLoopRunning) {
             // TODO: Scene update
-            // TODO: Rendering
+
+            // Draw a frame
+            // if (!mGraphicsContext->Draw()) {
+            //     // LOG_ERROR(L"Failed to draw a frame.\n");
+            //     // mIsMainLoopRunning = false;
+            //     // break;
+            // }
         }
     }
 

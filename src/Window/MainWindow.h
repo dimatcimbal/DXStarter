@@ -39,7 +39,9 @@ class MainWindow {
      */
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-    MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom,
+    MainWindow(HWND hWnd,
+               HMODULE hInstance,
+               ATOM wcAtom,
                std::unique_ptr<GraphicsContext> pGraphicsContext)
         : mHWnd(hWnd),
           mHInstance(hInstance),
@@ -69,6 +71,15 @@ class MainWindow {
     MainWindow(const MainWindow&) = delete;
     MainWindow& operator=(const MainWindow&) = delete;
 
+    /**
+     * Provides MainWindows instance context to the static WindowProc.
+     * @return
+     */
+    LRESULT OnWindowEvent(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+    // Instance handlers
+    bool OnCreate(HWND hWnd) const;
+    bool OnResize(int Width, int Height) const;
     int Run();
 
    private:
