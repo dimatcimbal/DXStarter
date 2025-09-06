@@ -1,5 +1,14 @@
 # Development Steps
 
+## Application state (git:app/00-app-state)
+
+* Add App class to centralize graphics context updates per frame, decoupling immediate window message handling from resource updates.
+    1. Implement deferred state update pattern: window events set flags/state in App, processed in App::Update().
+    2. Add App::Create(App*& OutApp) factory method for initialization.
+    3. Add App::OnCreate(HWND hWnd) and App::OnResize(int NewWidth, int NewHeight) to record state for next update.
+    4. Add App::Stop() to signal clean exit; main loop calls App::Update() until exit.
+    5. Graphics context changes (swap chain creation, resizing) performed once per frame, even if multiple events occur.
+    6. MainWindow delegates window events to App; App manages graphics context lifecycle and main loop control.
 
 ## Main Window Pointer (git:window/01-window-message-handler)
 

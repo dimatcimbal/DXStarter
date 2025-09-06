@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "App.h"
 #include "Graphics/GraphicsContext.h"
 
 // Main window class name for registration
@@ -25,7 +26,7 @@ class MainWindow {
      * @param OutWindow A unique pointer to hold the created MainWindow instance.
      * @return true if the MainWindow was successfully created; false otherwise.
      */
-    static bool Create(std::unique_ptr<MainWindow>& OutWindow);
+    static bool Create(App* app, MainWindow*& OutWindow);
 
     /**
      * Standard Windows message handler.
@@ -39,14 +40,8 @@ class MainWindow {
      */
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-    MainWindow(HWND hWnd,
-               HMODULE hInstance,
-               ATOM wcAtom,
-               std::unique_ptr<GraphicsContext> pGraphicsContext)
-        : mHWnd(hWnd),
-          mHInstance(hInstance),
-          mWcAtom(wcAtom),
-          mGraphicsContext(std::move(pGraphicsContext)) {
+    MainWindow(App* app, HWND hWnd, HMODULE hInstance, ATOM wcAtom)
+        : mApp(app), mHWnd(hWnd), mHInstance(hInstance), mWcAtom(wcAtom) {
         // Display and update the main window.
         ShowWindow(hWnd, SW_SHOWDEFAULT);
         UpdateWindow(hWnd);
@@ -75,17 +70,14 @@ class MainWindow {
     LRESULT OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     // Window event handlers
-    bool OnCreate(HWND hWnd) const;
-    bool OnResize(int Width, int Height) const;
+    // bool OnCreate(HWND hWnd);
+    // bool OnResize(int NewWidth, int NewHeight);
 
     // The main loop
     int Run();
 
    private:
-    std::unique_ptr<GraphicsContext> mGraphicsContext;
-
-    bool mIsMainLoopRunning{true};
-
+    App* mApp;
     ATOM mWcAtom;
     HMODULE mHInstance;
     HWND mHWnd;

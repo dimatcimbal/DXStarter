@@ -41,10 +41,11 @@ class GraphicsContext {
      * @return true if the draw call was successful; false otherwise.
      */
     bool Draw();
+    bool Flush();
 
     // Window event handlers
-    bool OnWindowCreate(HWND hWnd, uint32_t Width = 320, uint32_t Height = 240);
-    bool OnWindowResize(uint32_t Width, uint32_t Height);
+    bool CreateSwapChain(HWND hWnd, uint32_t Width = 320, uint32_t Height = 240);
+    bool ResizeSwapChain(uint32_t Width, uint32_t Height);
 
    private:
     // IMPORTANT. Keep the DebugLayer at the very top to ensure it is destroyed last.

@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "App.h"
 #include "Window/MainWindow.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
@@ -10,9 +11,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
 
+    App* app;
+    if (!App::Create(app)) {
+        MessageBox(nullptr, L"Failed to create application", L"Error", MB_OK | MB_ICONERROR);
+        return -1;
+    }
+
     // Creates the main window.
-    std::unique_ptr<MainWindow> mainWindow;
-    if (!MainWindow::Create(mainWindow)) {
+    MainWindow* mainWindow;
+    if (!MainWindow::Create(app, mainWindow)) {
         MessageBox(nullptr, L"Failed to create main window", L"Error", MB_OK | MB_ICONERROR);
         return -1;
     }
