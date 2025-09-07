@@ -21,17 +21,24 @@ class GraphicsContext {
      */
     static bool Create(std::unique_ptr<GraphicsContext>& OutContext);
 
-    GraphicsContext(std::unique_ptr<CommandQueue>&& CommandQueue, std::unique_ptr<Device> Device,
+    GraphicsContext(std::unique_ptr<CommandQueue>&& CommandQueue,
+                    std::unique_ptr<CommandAllocator>&& CommandAllocator,
+                    std::unique_ptr<Device> Device,
                     std::unique_ptr<DebugLayer>&& DebugLayer)
         : mCommandQueue(std::move(CommandQueue)),
+          mCommandAllocator(std::move(CommandAllocator)),
           mDevice(std::move(Device)),
           mDebugLayer(std::move(DebugLayer)) {}
 
     ~GraphicsContext() {
-        LOG_INFO(L"Freeing GraphicsContext.\n");
+        LOG_INFO(L"\tFreeing GraphicsContext.\n");
+
+        // Flush the command queue for all the buffers to ensure all GPU operations
+        // are complete before destruction.
+        FlushAll();
     }
 
-    // Deleted copy constructor and assignment operator to prevent copying
+    // Prohibit copying
     GraphicsContext(GraphicsContext& copy) = delete;
     GraphicsContext& operator=(const GraphicsContext& copy) = delete;
 
@@ -40,11 +47,14 @@ class GraphicsContext {
      *
      * @return true if the draw call was successful; false otherwise.
      */
-    bool Draw();
+    bool Draw() const;
 
     // Window event handlers
     bool CreateSwapChain(HWND hWnd, uint32_t Width = 320, uint32_t Height = 240);
     bool ResizeSwapChain(uint32_t Width, uint32_t Height);
+
+   private:
+    bool FlushAll() const;
 
    private:
     // IMPORTANT. Keep the DebugLayer at the very top to ensure it is destroyed last.
@@ -52,5 +62,6 @@ class GraphicsContext {
     std::unique_ptr<DebugLayer> mDebugLayer;
 
     std::unique_ptr<CommandQueue> mCommandQueue;
+    std::unique_ptr<CommandAllocator> mCommandAllocator;
     std::unique_ptr<Device> mDevice;
 };

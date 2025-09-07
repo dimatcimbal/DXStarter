@@ -1,9 +1,6 @@
 #pragma once
 
-#include <wrl/client.h>
-
-#include <memory>
-
+#include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
 
@@ -30,7 +27,7 @@ class DebugLayer {
 #endif
 
     ~DebugLayer() {
-        LOG_INFO(L"Freeing DebugLayer.\n");
+        LOG_INFO(L"\t\tFreeing DebugLayer.\n");
         ReportLiveObjects();
     };
 

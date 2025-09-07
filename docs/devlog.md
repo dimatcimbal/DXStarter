@@ -1,14 +1,37 @@
 # Development Steps
 
+## Command Allocator (git:dx/03-command-allocator)
+
+* Add `CommandAllocator` class to manage resources responsible for GPU commands recording for D3D and provide a `ID3D12CommandList` object which
+  serves the interface for the recording. The `ID3D12CommandList` relies on the `ID3D12CommandAllocator`
+  to reset and allocate memory before each use.
+    1. Implement `CommandAllocator` to encapsulate both an `ID3D12CommandAllocator` and an
+       `ID3D12GraphicsCommandList10`.
+        * Prohibit copying to ensure unique ownership and prevent resource conflicts.
+    2. Create a factory method `Device::CreateCommandAllocator` that initializes `CommandAllocator` instance.
+        * Return a `std::unique_ptr<CommandAllocator>` for the specified command list type and flags.
+    3. Add `CommandAllocator::GetID3D12CommandList` method which:
+        * Resets the underlying command allocator.
+        * Resets the underlying instance of `ID3D12GraphicsCommandList10`.
+        * Returns the instance of `ID3D12GraphicsCommandList10` for recording commands.
+    4. Integrate with the graphics context to ensure command lists are properly reset and reused each frame.
+        * Before recording commands, call `GetID3D12CommandList()` to reset and retrieve the command list.
+
 ## Decoupling graphics context updates (git:window/02-decouple-graphics-context-updates)
 
-* Add `WindowState` class to centralize graphics context updates, decoupling immediate window message handling from resource updates.
-    1. Implement deferred state update pattern: window events set flags/state in App, processed in `WindowState::Update()`.
-    2. Update `Window::Create(GraphicsContext* GraphicsContext, Window*& OutWindow)` factory method to initialize an instance of `WindowState`.
-    3. Add `WindowState::OnCreate(HWND hWnd)` and `WindowState::OnResize(int NewWidth, int NewHeight)` to record state for next update.
-    4. Add `WindowState::Stop()` to signal clean exit; the main application loop calls `WindowState::Update()` until exit.
+* Add `WindowState` class to centralize graphics context updates, decoupling immediate window message handling from
+  resource updates.
+    1. Implement deferred state update pattern: window events set flags/state in App, processed in
+       `WindowState::Update()`.
+    2. Update `Window::Create(GraphicsContext* GraphicsContext, Window*& OutWindow)` factory method to initialize an
+       instance of `WindowState`.
+    3. Add `WindowState::OnCreate(HWND hWnd)` and `WindowState::OnResize(int NewWidth, int NewHeight)` to record state
+       for next update.
+    4. Add `WindowState::Stop()` to signal clean exit; the main application loop calls `WindowState::Update()` until
+       exit.
     5. `MainState` manages graphics context lifecycle and main loop control.
-    6. Graphics context changes (swap chain creation, resizing) performed once per frame, even if multiple window messages received.
+    6. Graphics context changes (swap chain creation, resizing) performed once per frame, even if multiple window
+       messages received.
 
 ## Main Window Pointer (git:window/01-window-message-handler)
 

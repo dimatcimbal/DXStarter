@@ -40,7 +40,9 @@ class MainWindow {
      */
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-    MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom,
+    MainWindow(HWND hWnd,
+               HMODULE hInstance,
+               ATOM wcAtom,
                std::unique_ptr<WindowState>&& WindowState)
         : mHWnd(hWnd),
           mHInstance(hInstance),

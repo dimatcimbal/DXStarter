@@ -160,5 +160,6 @@ int MainWindow::Run() {
     } while (mWindowState->Update());
 
     // Exit
+    LOG_INFO(L"Exiting application.\n");
     return msg.message == WM_QUIT ? static_cast<int>(msg.wParam) : 0;
 }
