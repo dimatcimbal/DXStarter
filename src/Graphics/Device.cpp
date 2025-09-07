@@ -1,15 +1,54 @@
 #include "Device.h"
 
+#include "CommandAllocator.h"
 #include "CommandQueue.h"
 #include "Logging/Logging.h"
 
-bool Device::Create(D3D_FEATURE_LEVEL FeatureLevel, bool IsHardwareDevice, bool HasMaxVideoMemory,
+bool Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE Type,
+                                    D3D12_COMMAND_LIST_FLAGS Flags,
+                                    std::unique_ptr<CommandAllocator>& OutAllocator) const {
+    using Microsoft::WRL::ComPtr;
+
+    ComPtr<ID3D12CommandAllocator> pCommandAllocator;
+    if (FAILED(mD3DDevice->CreateCommandAllocator(
+            // Command list type (D3D12_COMMAND_LIST_TYPE_DIRECT /
+            // D3D12_COMMAND_LIST_TYPE_COMPUTE, etc)
+            Type,
+            // Return value
+            IID_PPV_ARGS(&pCommandAllocator)))) {
+        LOG_ERROR(L"\t\tFailed to create D3D12 command allocator.\n");
+        return false;
+    }
+
+    ComPtr<ID3D12GraphicsCommandList10> pGraphicsCommandList;
+    if (FAILED(mD3DDevice->CreateCommandList1(
+            // Current GPU
+            0,
+            // Command list type (D3D12_COMMAND_LIST_TYPE_DIRECT /
+            // D3D12_COMMAND_LIST_TYPE_COMPUTE, etc)
+            Type,
+            // Command list flags (most likely D3D12_COMMAND_LIST_FLAG_NONE)
+            Flags,
+            // Return value
+            IID_PPV_ARGS(&pGraphicsCommandList)))) {
+        LOG_ERROR(L"\t\tFailed to create D3D12 command list.\n");
+        return false;
+    }
+
+    OutAllocator = std::make_unique<CommandAllocator>(Type, std::move(pCommandAllocator),
+                                                      std::move(pGraphicsCommandList));
+    return true;
+}
+
+bool Device::Create(D3D_FEATURE_LEVEL FeatureLevel,
+                    bool IsHardwareDevice,
+                    bool HasMaxVideoMemory,
                     std::unique_ptr<Device>& OutDevice) {
     using Microsoft::WRL::ComPtr;
 
     ComPtr<IDXGIFactory7> pDXGIFactory;
-    if FAILED (CreateDXGIFactory1(IID_PPV_ARGS(&pDXGIFactory))) {
-        LOG_ERROR(L"Failed to create DXGI factory.\n");
+    if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&pDXGIFactory)))) {
+        LOG_ERROR(L"\t\tFailed to create DXGI factory.\n");
         return false;
     }
 
@@ -49,7 +88,7 @@ bool Device::Create(D3D_FEATURE_LEVEL FeatureLevel, bool IsHardwareDevice, bool 
     }
 
     if (!pBestD3DDevice) {
-        LOG_ERROR(L"No suitable D3D12 device found.\n");
+        LOG_ERROR(L"\t\tNo suitable D3D12 device found.\n");
         return false;
     }
 
@@ -57,8 +96,10 @@ bool Device::Create(D3D_FEATURE_LEVEL FeatureLevel, bool IsHardwareDevice, bool 
     return true;
 }
 
-bool Device::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type, D3D12_COMMAND_QUEUE_PRIORITY Priority,
-                                D3D12_COMMAND_QUEUE_FLAGS QueueFlags, D3D12_FENCE_FLAGS FenceFlags,
+bool Device::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type,
+                                D3D12_COMMAND_QUEUE_PRIORITY Priority,
+                                D3D12_COMMAND_QUEUE_FLAGS QueueFlags,
+                                D3D12_FENCE_FLAGS FenceFlags,
                                 std::unique_ptr<CommandQueue>& OutQueue) const {
     using Microsoft::WRL::ComPtr;
 
@@ -69,8 +110,8 @@ bool Device::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type, D3D12_COMMAND_QUEU
     desc.Flags = QueueFlags;
 
     ComPtr<ID3D12CommandQueue> pD3D12CommandQueue;
-    if FAILED (mD3DDevice->CreateCommandQueue(&desc, IID_PPV_ARGS(&pD3D12CommandQueue))) {
-        LOG_ERROR(L"Failed to create D3D12 command queue.\n");
+    if (FAILED(mD3DDevice->CreateCommandQueue(&desc, IID_PPV_ARGS(&pD3D12CommandQueue)))) {
+        LOG_ERROR(L"\t\tFailed to create D3D12 command queue.\n");
         return false;
     }
 
@@ -79,8 +120,8 @@ bool Device::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type, D3D12_COMMAND_QUEU
 
     // fence object
     ComPtr<ID3D12Fence1> pD3D12Fence;
-    if FAILED (mD3DDevice->CreateFence(InitFenceValue, FenceFlags, IID_PPV_ARGS(&pD3D12Fence))) {
-        LOG_ERROR(L"Failed to create ID3D12Fence1.\n");
+    if (FAILED(mD3DDevice->CreateFence(InitFenceValue, FenceFlags, IID_PPV_ARGS(&pD3D12Fence)))) {
+        LOG_ERROR(L"\t\tFailed to create ID3D12Fence1.\n");
         return false;
     }
 

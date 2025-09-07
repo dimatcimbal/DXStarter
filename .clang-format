@@ -16,7 +16,7 @@ PointerAlignment: Left
 ReferenceAlignment: Left
 
 # Args
-BinPackParameters: true
+BinPackParameters: false
 
 # Short expressions placement
 AllowShortFunctionsOnASingleLine: Empty
