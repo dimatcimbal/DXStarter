@@ -4,6 +4,7 @@
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
+#include "SwapChain.h"
 
 class Device {
    public:
@@ -38,6 +39,21 @@ class Device {
                             D3D12_COMMAND_QUEUE_FLAGS QueueFlags,
                             D3D12_FENCE_FLAGS FenceFlags,
                             std::unique_ptr<CommandQueue>& OutQueue) const;
+
+    bool CreateSwapChain(HWND hWnd,
+                         CommandQueue& GraphicsQueue,
+                         uint32_t Width,
+                         uint32_t Height,
+                         uint32_t BufferCount,
+                         DXGI_USAGE BufferUsage,
+                         DXGI_FORMAT Format,
+                         uint32_t Flags,
+                         std::unique_ptr<SwapChain>& OutSwapChain) const;
+
+    void DisableAltEnterFullscreenToggle(HWND mHWnd) {
+        // Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
+        mDXGIFactory->MakeWindowAssociation(mHWnd, DXGI_MWA_NO_ALT_ENTER);
+    }
 
     // Deleted copy constructor and assignment operator to prevent copying
     Device(Device& copy) = delete;

@@ -4,6 +4,7 @@
 #include "CommandList.h"
 #include "DebugLayer.h"
 #include "Device.h"
+#include "SwapChain.h"
 
 // Graphics configs below
 constexpr D3D_FEATURE_LEVEL GRAPHICS_FEATURE_LEVEL = D3D_FEATURE_LEVEL_12_0;
@@ -34,8 +35,8 @@ class GraphicsContext {
     ~GraphicsContext() {
         LOG_INFO(L"\tFreeing GraphicsContext.\n");
 
-        // Flush the command queue for all the buffers to ensure all GPU operations
-        // are complete before destruction.
+        // Flush the command queue for all the buffers in the swap chain to ensure all GPU
+        // operations are complete before destruction.
         FlushAll();
     }
 
@@ -48,6 +49,7 @@ class GraphicsContext {
      * closes itself and executes when goes out of scope.
      */
     bool GetCommandList(CommandList<ID3D12GraphicsCommandList10>& OutCommandList) const;
+    bool Present() const;
 
     // Window event handlers
     bool CreateSwapChain(HWND hWnd, uint32_t Width = 320, uint32_t Height = 240);
@@ -57,11 +59,19 @@ class GraphicsContext {
     bool FlushAll() const;
 
    private:
-    // IMPORTANT. Keep the DebugLayer at the very top to ensure it is destroyed last.
+    // IMPORTANT. Keep the DebugLayer at the very top to ensure it is destroyed the last.
     // It reports on LIVE DX objects before the context is destroyed.
     std::unique_ptr<DebugLayer> mDebugLayer;
 
+    // The rest of the owned resources
+    std::unique_ptr<SwapChain> mSwapChain;
     std::unique_ptr<CommandQueue> mCommandQueue;
     std::unique_ptr<CommandAllocator> mCommandAllocator;
     std::unique_ptr<Device> mDevice;
+
+    // count is 2 to accommodate back buffer (one is presenting while the other is a back buffer)
+    uint32_t mBufferCount{2};
+    // Display resolution
+    uint32_t mWidth{0};
+    uint32_t mHeight{0};
 };
