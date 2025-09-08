@@ -56,7 +56,11 @@ bool Renderer::Update() {
         return false;
     }
 
-    // TODO Present the frame with the swap chain
+    // Present the frame with the swap chain
+    if (!mGraphicsContext->Present()) {
+        LOG_ERROR(L"Failed to present a frame.\n");
+        return false;
+    }
 
     return mIsRunning;
 }

@@ -32,6 +32,11 @@ class CommandQueue {
     CommandQueue(const CommandQueue& copy) = delete;
     CommandQueue& operator=(const CommandQueue& copy) = delete;
 
+    // Accessors
+    ID3D12CommandQueue* GetD3D12CommandQueue() const {
+        return mD3D12CommandQueue.Get();
+    }
+
    private:
     uint64_t NextFenceValue();
 

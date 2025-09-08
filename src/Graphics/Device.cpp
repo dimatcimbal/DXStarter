@@ -4,6 +4,60 @@
 #include "CommandQueue.h"
 #include "Logging/Logging.h"
 
+bool Device::CreateSwapChain(HWND hWnd,
+                             CommandQueue& GraphicsQueue,
+                             uint32_t Width,
+                             uint32_t Height,
+                             uint32_t BufferCount,
+                             DXGI_USAGE BufferUsage,
+                             DXGI_FORMAT Format,
+                             uint32_t Flags,
+                             std::unique_ptr<SwapChain>& OutSwapChain) const {
+    using Microsoft::WRL::ComPtr;
+
+    // Swap chain desc
+    DXGI_SWAP_CHAIN_DESC1 desc;
+    desc.Width = Width;
+    desc.Height = Height;
+    desc.Format = Format;
+    desc.Flags = Flags;
+
+    // No stereo
+    desc.Stereo = FALSE;
+
+    // no multi-sampling, pixel per pixel
+    desc.SampleDesc.Count = 1;
+    // no anti-aliasing
+    desc.SampleDesc.Quality = 0;
+
+    desc.BufferCount = BufferCount;
+    desc.BufferUsage = BufferUsage;
+    // Stretch the image until the SwapChain::Resize is called
+    desc.Scaling = DXGI_SCALING_STRETCH;
+
+    // Flip discard
+    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+    // Always ignore
+    desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+
+    // Fullscreen desc
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFullscreen;
+    descFullscreen.Windowed = true;
+
+    ComPtr<IDXGISwapChain1> pDXGISwapChain;
+    if (FAILED(mDXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetD3D12CommandQueue(), hWnd,
+                                                    &desc, &descFullscreen, nullptr,
+                                                    &pDXGISwapChain))) {
+        LOG_ERROR(L"\t\tFailed to create DXGI swap chain.\n");
+        return false;
+    }
+
+    OutSwapChain = std::make_unique<SwapChain>(BufferCount, Format, Flags, GraphicsQueue,
+                                               std::move(pDXGISwapChain));
+    return true;
+}
+
 bool Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE Type,
                                     D3D12_COMMAND_LIST_FLAGS Flags,
                                     std::unique_ptr<CommandAllocator>& OutAllocator) const {

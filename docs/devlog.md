@@ -1,7 +1,19 @@
 # Development Steps
 
-## Renderer (git:dx/04-renderer)
+## Swap Chain (git:dx/05-swap-chain)
+* Create SwapChain class that wraps a `IDXGISwapChain1` and manages back buffer resources for rendering.
+    1. Create a factory method `Device::CreateSwapChain` that initializes and returns a `SwapChain` object.
+        * Describe the swap chain using a `DXGI_SWAP_CHAIN_DESC1` struct, specifying buffer count, format, usage, and swap effect.
+        * Use `IDXGIFactory7::CreateSwapChainForHwnd` to create the swap chain for a window, passing the command queue, window handle, and swap chain description.
+        * Disable the Alt+Enter fullscreen toggle feature with `IDXGIFactory4::MakeWindowAssociation(HWND, DXGI_MWA_NO_ALT_ENTER)` to prevent unwanted mode switches.
+        * Store a reference to the corresponding graphics `CommandQueue` in the `SwapChain` object.
+    2. Implement `SwapChain::Present()` to present a buffer to the screen using `IDXGISwapChain1::Present(SyncInterval, Flags)`.
+        * This method is called once per frame display the buffer with rendered content.
+    3. Implement basic `GraphicsContext::ResizeSwapChain(uint32_t Width, uint32_t Height)` to handle window resizing.
+        * Flush all work (in the graphics `CommandQueue`) before resizing to ensure no commands are pending on the GPU.
+        * Call `IDXGISwapChain1::ResizeBuffers` with the new width and height to adjust the swap chain buffers.
 
+## Renderer (git:dx/04-renderer)
 1. Rename the `WindowState` class to `Renderer` to better reflect its purpose.
     * Move the `Renderer` class to the `Graphics` package.
 2. Create a RAII wrapper for `ID3D12GraphicsCommandList10`.
@@ -15,7 +27,6 @@
       provide a command list instead of `GraphicsContext::Draw()` call.
 
 ## Command Allocator (git:dx/03-command-allocator)
-
 * Add `CommandAllocator` class to manage resources responsible for GPU commands recording for D3D and provide a
   `ID3D12CommandList` object which
   serves the interface for the recording. The `ID3D12CommandList` relies on the `ID3D12CommandAllocator`
@@ -33,7 +44,6 @@
         * Before recording commands, call `GetID3D12CommandList()` to reset and retrieve the command list.
 
 ## Decoupling graphics context updates (git:window/02-decouple-graphics-context-updates)
-
 * Add `WindowState` class to centralize graphics context updates, decoupling immediate window message handling from
   resource updates.
     1. Implement deferred state update pattern: window events set flags/state in App, processed in
@@ -49,7 +59,6 @@
        messages received.
 
 ## Main Window Pointer (git:window/01-window-message-handler)
-
 * Implement window message handlers to manage window creation and resizing.
     1. Refactor the main window `MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow)` factory method to store a
        pointer to the created window instance in lpParam.
@@ -65,7 +74,6 @@
           resources to match the new window size.
 
 ## Command Queue (git:dx/02-command-queue)
-
 * Create CommandQueue class that wraps a ID3D12CommandQueue.
     1. Create a factory method `Device::CreateCommandQueue` that initializes and returns `CommandQueue` object.
     2. Implement `CommandQueue::ExecuteCommandList` to execute a given command list.
@@ -74,7 +82,6 @@
        value.
 
 ## Graphics Context and Device (git:dx/01-graphics-context)
-
 * Create GraphicContext class that encaps DX12 device, command queue, etc.
     1. Create DebugLayer class initializing it members with `D3D12GetDebugInterface`, `ID3D12Debug::EnableDebugLayer`
        and `DXGIGetDebugInterface1`. Customize the DebugLayer destructor to report any live objects remaining.
@@ -86,7 +93,6 @@
           criteria (is hardware, supports the requested feature level, has the highest video memory).
 
 ## Main Window (git:window/00-main-window)
-
 * Create an application window with the following steps:
     1. **Get the module handle**: Use `GetModuleHandle(NULL)` to retrieve the handle to the current module.
     2. **Describe the window class**: Fill out a `WNDCLASSEX` structure to define the window's properties.
@@ -106,7 +112,6 @@
        macros and use wide-character versions of WinAPI functions in macros like OutputDebugString.
 
 ## Main entry point (git:windows/00-main)
-
 * Implement the standard `WinMain(HINSTANCE, HINSTANCE, LPSTR, int)` handler.
     1. `WinMain` is the entry point for Windows applications, similar to `main` in console applications.
     2. Create the main window instance and enter the main application loop.

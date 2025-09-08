@@ -52,16 +52,98 @@ bool GraphicsContext::GetCommandList(
 }
 
 bool GraphicsContext::CreateSwapChain(HWND hWnd, uint32_t Width, uint32_t Height) {
-    LOG_INFO(L"GraphicsContext::CreateSwapChain is being called for HWND: 0x%p\n", hWnd);
+    LOG_INFO(L"\tCreating SwapChain for window %p with size %u x %u\n", hWnd, Width, Height);
+
+    // Release the previous swap chain
+    if (mSwapChain) {
+        mSwapChain->FlushAll();
+        mSwapChain.reset();
+    }
+
+    // DXGI_FORMAT_R8G8B8A8_UNORM is the most common swap chain format
+    DXGI_FORMAT Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    DXGI_USAGE Usage =
+        // Back buffer (target for rendering)
+        DXGI_USAGE_BACK_BUFFER |
+        // output to a window (hwnd)
+        DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+    uint32_t Flags =
+        // Create a flip-model swap chain
+        DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH |
+        // Skip vsync
+        DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
+    if (!mDevice->CreateSwapChain(hWnd, *mCommandQueue, Width, Height, mBufferCount, Usage, Format,
+                                  Flags, mSwapChain)) {
+        LOG_ERROR(L"\tFailed to create a SwapChain");
+        return false;
+    }
+
+    mDevice->DisableAltEnterFullscreenToggle(hWnd);
     return true;
 }
 
 bool GraphicsContext::ResizeSwapChain(uint32_t Width, uint32_t Height) {
-    LOG_INFO(L"GraphicsContext::ResizeSwapChain is being called for Width: %d, Height: %d\n", Width,
-             Height);
+    LOG_INFO(L"\tResizing SwapChain to %u x %u\n", Width, Height);
+
+    if (mSwapChain == nullptr) {
+        LOG_ERROR(
+            L"\tSwapChain is not initialized. "
+            "Use GraphicsContext::CreateSwapChain before presenting.\n");
+        return false;
+    }
+
+    if (mWidth == Width && mHeight == Height) {
+        // No change if the dimensions are the same which can happen when window is restored.
+        LOG_INFO(L"\tNo change in swap chain dimensions. Window is restored.\n");
+        return true;
+    }
+
+    if (!mSwapChain->FlushAll()) {
+        LOG_ERROR(L"\tFailed to flush the swap chain's graphics queue.\n");
+        return false;
+    }
+
+    if (!mSwapChain->Resize(Width, Height)) {
+        LOG_ERROR(L"\tFailed to resize the swap chain.\n");
+        return false;
+    }
+
+    // Update stored width and height
+    mWidth = Width;
+    mHeight = Height;
+
+    return true;
+}
+
+bool GraphicsContext::Present() const {
+    if (mSwapChain == nullptr) {
+        LOG_ERROR(
+            L"\tSwapChain is not initialized. "
+            "Use GraphicsContext::CreateSwapChain before presenting.\n");
+        return false;
+    }
+
+    if (!mSwapChain->Present()) {
+        LOG_ERROR(L"\tFailed to present the swap chain.\n");
+        return false;
+    }
     return true;
 }
 
 bool GraphicsContext::FlushAll() const {
-    return mCommandQueue->WaitForIdle();
+    if (mSwapChain == nullptr) {
+        LOG_ERROR(
+            L"\tSwapChain is not initialized. "
+            "Use GraphicsContext::CreateSwapChain before presenting.\n");
+        return false;
+    }
+
+    if (!mSwapChain->FlushAll()) {
+        LOG_ERROR(L"\tFailed to flush the swap chain's graphics queue.\n");
+        return false;
+    }
+    return true;
 }
