@@ -39,6 +39,18 @@ bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
     return true;
 }
 
+bool GraphicsContext::GetCommandList(
+    CommandList<ID3D12GraphicsCommandList10>& OutCommandList) const {
+    ID3D12GraphicsCommandList10* pD3DCommandList;
+    if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
+        LOG_ERROR(L"Failed to get command list from the allocator.\n");
+        return false;
+    }
+
+    OutCommandList = CommandList(mCommandQueue.get(), pD3DCommandList);
+    return true;
+}
+
 bool GraphicsContext::CreateSwapChain(HWND hWnd, uint32_t Width, uint32_t Height) {
     LOG_INFO(L"GraphicsContext::CreateSwapChain is being called for HWND: 0x%p\n", hWnd);
     return true;
@@ -47,19 +59,6 @@ bool GraphicsContext::CreateSwapChain(HWND hWnd, uint32_t Width, uint32_t Height
 bool GraphicsContext::ResizeSwapChain(uint32_t Width, uint32_t Height) {
     LOG_INFO(L"GraphicsContext::ResizeSwapChain is being called for Width: %d, Height: %d\n", Width,
              Height);
-    return true;
-}
-
-bool GraphicsContext::Draw() const {
-    ID3D12GraphicsCommandList10* pD3DCommandList;
-    if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
-        LOG_ERROR(L"Failed to get command list from the allocator.\n");
-        return false;
-    }
-
-    CommandList cmd(mCommandQueue.get(), pD3DCommandList);
-    // TODO: Record commands into CommandList here
-
     return true;
 }
 

@@ -1,8 +1,23 @@
 # Development Steps
 
+## Renderer (git:dx/04-renderer)
+
+1. Rename the `WindowState` class to `Renderer` to better reflect its purpose.
+    * Move the `Renderer` class to the `Graphics` package.
+2. Create a RAII wrapper for `ID3D12GraphicsCommandList10`.
+    * Prohibit copying to ensure unique ownership.
+    * Implement move semantics to transfer ownership over the underlying `ID3D12GraphicsCommandList`.
+    * Implement a destructor that closes and submits the command list for execution if both the `CommandQueue` and
+      `ID3D12GraphicsCommandList` pointers exist.
+3. Implement a private `Renderer::Draw()` method that retrieves a fresh command list via  
+   `GraphicsContext::GetCommandList(CommandList<T>& OutCommandList)` to record rendering commands.
+    * Refactor `GraphicsContext::Draw()` into `GraphicsContext::GetCommandList(CommandList<T>& OutCommandList)` to
+      provide a command list instead of `GraphicsContext::Draw()` call.
+
 ## Command Allocator (git:dx/03-command-allocator)
 
-* Add `CommandAllocator` class to manage resources responsible for GPU commands recording for D3D and provide a `ID3D12CommandList` object which
+* Add `CommandAllocator` class to manage resources responsible for GPU commands recording for D3D and provide a
+  `ID3D12CommandList` object which
   serves the interface for the recording. The `ID3D12CommandList` relies on the `ID3D12CommandAllocator`
   to reset and allocate memory before each use.
     1. Implement `CommandAllocator` to encapsulate both an `ID3D12CommandAllocator` and an
@@ -36,35 +51,39 @@
 ## Main Window Pointer (git:window/01-window-message-handler)
 
 * Implement window message handlers to manage window creation and resizing.
-    1. Refactor the main window `MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow)` factory method to store a pointer to the created window instance in lpParam.
-    2. Update the `WindowProc` to handle `WM_NCCREATE`, retrieve the window instance pointer from the `lpParam` data, and set it on the user data with `SetWindowLongPtr`.
-    3. In the `WindowProc` retrieve the window instance pointer with `GetWindowLongPtr` in subsequent messages and invoke the corresponding non-static message handlers.
+    1. Refactor the main window `MainWindow::Create(std::unique_ptr<MainWindow>& OutWindow)` factory method to store a
+       pointer to the created window instance in lpParam.
+    2. Update the `WindowProc` to handle `WM_NCCREATE`, retrieve the window instance pointer from the `lpParam` data,
+       and set it on the user data with `SetWindowLongPtr`.
+    3. In the `WindowProc` retrieve the window instance pointer with `GetWindowLongPtr` in subsequent messages and
+       invoke the corresponding non-static message handlers.
     4. Handle `WM_CREATE` with the `MainWindow::OnCreate(HWND hWnd)` event handler.
-        * Forward the call to `GraphicsContext::OnWindowCreate(HWND hWnd, uint32_t Width, uint32_t Height)` to initialize necessary graphics resources, like a swap chain.
+        * Forward the call to `GraphicsContext::OnWindowCreate(HWND hWnd, uint32_t Width, uint32_t Height)` to
+          initialize necessary graphics resources, like a swap chain.
     5. Handle `WM_SIZE` with the `MainWindow::OnResize(int Width, int Height)` event handler.
-        * Forward the call to `GraphicsContext::OnWindowResize(uint32_t Width, uint32_t Height)` to update graphics resources to match the new window size.
-
+        * Forward the call to `GraphicsContext::OnWindowResize(uint32_t Width, uint32_t Height)` to update graphics
+          resources to match the new window size.
 
 ## Command Queue (git:dx/02-command-queue)
 
 * Create CommandQueue class that wraps a ID3D12CommandQueue.
-    1. Create a factory method `Device::CreateCommandQueue` that initializes and returns `CommandQueue` object. 
+    1. Create a factory method `Device::CreateCommandQueue` that initializes and returns `CommandQueue` object.
     2. Implement `CommandQueue::ExecuteCommandList` to execute a given command list.
     3. Implement `CommandQueue::NextFenceValue` to increment and return the next fence value.
-    4. Implement `CommandQueue::WaitForFenceValue` a blocking function to wait until the fence reaches a specified value.
-
+    4. Implement `CommandQueue::WaitForFenceValue` a blocking function to wait until the fence reaches a specified
+       value.
 
 ## Graphics Context and Device (git:dx/01-graphics-context)
 
 * Create GraphicContext class that encaps DX12 device, command queue, etc.
     1. Create DebugLayer class initializing it members with `D3D12GetDebugInterface`, `ID3D12Debug::EnableDebugLayer`
        and `DXGIGetDebugInterface1`. Customize the DebugLayer destructor to report any live objects remaining.
-       * Ensure the DebugLayer instance gets destroyed last to report on remaining live objects.
+        * Ensure the DebugLayer instance gets destroyed last to report on remaining live objects.
     2. Create Device class that initializes DXGI factory and D3D12 device; and is a factory for other DX12 objects.
-       * Update `CMakeLists.txt` to include DX dependencies (`d3d12`, `dxgi`, `dxguid`)
-       * Create a factory method `Device::Create` which loops over the available adapters and selects the first one that matches the
-         criteria (is hardware, supports the requested feature level, has the highest video memory).
-    
+        * Update `CMakeLists.txt` to include DX dependencies (`d3d12`, `dxgi`, `dxguid`)
+        * Create a factory method `Device::Create` which loops over the available adapters and selects the first one
+          that matches the
+          criteria (is hardware, supports the requested feature level, has the highest video memory).
 
 ## Main Window (git:window/00-main-window)
 

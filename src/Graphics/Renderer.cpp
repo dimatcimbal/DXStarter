@@ -1,10 +1,25 @@
+#include "Renderer.h"
 
-#include "WindowState.h"
-
+#include "CommandList.h"
 #include "Graphics/GraphicsContext.h"
 #include "Logging/Logging.h"
 
-bool WindowState::Update() {
+bool Renderer::Draw() const {
+    // Get a command list
+    CommandList<ID3D12GraphicsCommandList10> cmd;
+    if (!mGraphicsContext->GetCommandList(cmd)) {
+        LOG_ERROR(L"Failed to draw a frame.\n");
+        return false;
+    }
+
+    // TODO: cmd->DoSomething() calls
+    cmd->SetName(L"Graphics Command List");
+
+    // The command list gets closed and executed automatically
+    return true;
+}
+
+bool Renderer::Update() {
     // Scene update and the rendering part
     // TODO: Scene update
 
@@ -35,11 +50,13 @@ bool WindowState::Update() {
         }
     }
 
-    // Draw a frame
-    if (!mGraphicsContext->Draw()) {
+    // Do draw
+    if (!Draw()) {
         LOG_ERROR(L"Failed to draw a frame.\n");
         return false;
     }
+
+    // TODO Present the frame with the swap chain
 
     return mIsRunning;
 }
