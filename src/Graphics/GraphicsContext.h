@@ -14,6 +14,44 @@ constexpr D3D_FEATURE_LEVEL GRAPHICS_FEATURE_LEVEL = D3D_FEATURE_LEVEL_12_0;
 class GraphicsContext {
    public:
     /**
+     * CommandList is a RAII wrapper for any ID3D12GraphicsCommandList version.
+     * It ensures that the command list is executed and the command queue is waited on when it goes
+     * out of scope.
+     */
+    template <typename TCommandList,
+              typename =
+                  std::enable_if_t<std::is_base_of<ID3D12GraphicsCommandList, TCommandList>::value>>
+    class CommandList {
+       public:
+        CommandList(CommandQueue* CommandQueue, TCommandList* CommandList)
+            : mCommandQueue(CommandQueue), mCommandList(CommandList) {}
+
+        ~CommandList() {
+            if (!mCommandQueue->ExecuteCommandList(mCommandList)) {
+                LOG_ERROR(L"\tFailed to execute command list.\n");
+            }
+            if (!mCommandQueue->WaitForIdle()) {
+                LOG_ERROR(L"\tFailed to wait on command queue.\n");
+            }
+        }
+
+        // Prohibit copying
+        CommandList(const CommandList& copy) = delete;
+        CommandList& operator=(const CommandList& copy) = delete;
+
+        /**
+         * Allows CommandList to be used as if it were a pointer to the command list type.
+         */
+        TCommandList* operator->() const {
+            return mCommandList;
+        }
+
+       private:
+        CommandQueue* mCommandQueue;
+        TCommandList* mCommandList;
+    };
+
+    /**
      * Factory method to create a GraphicsContext instance.
      *
      * @param OutContext A unique pointer to hold the created GraphicsContext instance.
