@@ -1,9 +1,9 @@
 ﻿#include "MainWindow.h"
 
+#include "Graphics/Renderer.h"
 #include "Logging/Logging.h"
-#include "WindowState.h"
 
-bool MainWindow::Create(GraphicsContext* GraphicsContext, std::unique_ptr<MainWindow>& OutWindow) {
+bool MainWindow::Create(Renderer* Renderer, std::unique_ptr<MainWindow>& OutWindow) {
     // Handler to the module owning the window
     HMODULE hInstance = GetModuleHandle(nullptr);
 
@@ -36,12 +36,11 @@ bool MainWindow::Create(GraphicsContext* GraphicsContext, std::unique_ptr<MainWi
 
     // Creates a WindowState which decouples immediate window message processing from the graphics
     // handling
-    std::unique_ptr<WindowState> state = std::make_unique<WindowState>(GraphicsContext);
 
     // Create a local MainWindow instance to pass as lpParam,
     // passing nullptr as hWnd, we'll set it after CreateWindowEx
     std::unique_ptr<MainWindow> pWindow =
-        std::make_unique<MainWindow>(nullptr, hInstance, wcAtom, std::move(state));
+        std::make_unique<MainWindow>(nullptr, hInstance, wcAtom, Renderer);
 
     HWND hWnd = CreateWindowEx(
         // Extended styles
@@ -115,13 +114,13 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 LRESULT MainWindow::OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_CREATE: {
-            mWindowState->OnCreate(hWnd);
+            mRenderer->OnCreate(hWnd);
             return 0;
         }
         case WM_SIZE: {
             int width = LOWORD(lParam);
             int height = HIWORD(lParam);
-            mWindowState->OnResize(width, height);
+            mRenderer->OnResize(width, height);
             return 0;
         }
         case WM_CLOSE: {
@@ -151,13 +150,13 @@ int MainWindow::Run() {
             DispatchMessage(&msg);
 
             if (msg.message == WM_QUIT) {
-                mWindowState->Stop();
+                mRenderer->Stop();
                 break;
             }
         }
 
         // Update and render the app state
-    } while (mWindowState->Update());
+    } while (mRenderer->Update());
 
     // Exit
     LOG_INFO(L"Exiting application.\n");

@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "Window/MainWindow.h"
-#include "Window/WindowState.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     UNREFERENCED_PARAMETER(hInstance);
@@ -18,9 +17,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
+    // The Renderer
+    auto pRenderer = std::make_unique<Renderer>(pGraphicsContext.get());
+
     // The main window.
     std::unique_ptr<MainWindow> mainWindow;
-    if (!MainWindow::Create(pGraphicsContext.get(), mainWindow)) {
+    if (!MainWindow::Create(pRenderer.get(), mainWindow)) {
         MessageBox(nullptr, L"Failed to create main window", L"Error", MB_OK | MB_ICONERROR);
         return -1;
     }

@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "Graphics/GraphicsContext.h"
-#include "WindowState.h"
+#include "Graphics/Renderer.h"
 
 // Main window class name for registration
 const static LPCWSTR MAIN_CLASS_NAME = L"DXStarterMainWindow";
@@ -26,7 +26,7 @@ class MainWindow {
      * @param OutWindow A unique pointer to hold the created MainWindow instance.
      * @return true if the MainWindow was successfully created; false otherwise.
      */
-    static bool Create(GraphicsContext* GraphicsContext, std::unique_ptr<MainWindow>& OutWindow);
+    static bool Create(Renderer* Renderer, std::unique_ptr<MainWindow>& OutWindow);
 
     /**
      * Standard Windows message handler.
@@ -40,14 +40,8 @@ class MainWindow {
      */
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-    MainWindow(HWND hWnd,
-               HMODULE hInstance,
-               ATOM wcAtom,
-               std::unique_ptr<WindowState>&& WindowState)
-        : mHWnd(hWnd),
-          mHInstance(hInstance),
-          mWcAtom(wcAtom),
-          mWindowState(std::move(WindowState)) {
+    MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom, Renderer* Renderer)
+        : mHWnd(hWnd), mHInstance(hInstance), mWcAtom(wcAtom), mRenderer(Renderer) {
         // Display and update the main window.
         ShowWindow(hWnd, SW_SHOWDEFAULT);
         UpdateWindow(hWnd);
@@ -79,7 +73,7 @@ class MainWindow {
     int Run();
 
    private:
-    std::unique_ptr<WindowState> mWindowState;
+    Renderer* mRenderer;
 
     HMODULE mHInstance;
     ATOM mWcAtom;
