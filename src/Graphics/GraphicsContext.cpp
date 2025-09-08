@@ -51,24 +51,14 @@ bool GraphicsContext::ResizeSwapChain(uint32_t Width, uint32_t Height) {
 }
 
 bool GraphicsContext::Draw() const {
-    ID3D12GraphicsCommandList10* CommandList;
-    if (!mCommandAllocator->GetID3D12CommandList(CommandList)) {
+    ID3D12GraphicsCommandList10* pD3DCommandList;
+    if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
         LOG_ERROR(L"Failed to get command list from the allocator.\n");
         return false;
     }
 
     CommandList cmd(mCommandQueue.get(), pD3DCommandList);
     // TODO: Record commands into CommandList here
-
-    if (!mCommandQueue->ExecuteCommandList(CommandList)) {
-        LOG_ERROR(L"\tFailed to execute command list.\n");
-        return false;
-    }
-
-    if (!mCommandQueue->WaitForIdle()) {
-        LOG_ERROR(L"\tFailed to wait on command queue.\n");
-        return false;
-    }
 
     return true;
 }
