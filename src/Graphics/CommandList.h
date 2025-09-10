@@ -17,7 +17,7 @@ class CommandList {
     CommandList() = default;
 
     CommandList(CommandQueue* CommandQueue, TD3D12CommandList* CommandList)
-        : mCommandQueue(CommandQueue), mCommandList(CommandList) {}
+        : mCommandQueue{CommandQueue}, mCommandList{CommandList} {}
 
     ~CommandList() {
         // Execute and wait on current command list if valid
@@ -37,7 +37,7 @@ class CommandList {
 
     // Move constructor
     CommandList(CommandList&& other) noexcept
-        : mCommandQueue(other.mCommandQueue), mCommandList(other.mCommandList) {
+        : mCommandQueue{other.mCommandQueue}, mCommandList{other.mCommandList} {
         other.mCommandQueue = nullptr;
         other.mCommandList = nullptr;
     }

@@ -97,6 +97,8 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
         // and store it in user data.
         CREATESTRUCT* pCreateStruct = reinterpret_cast<CREATESTRUCT*>(lParam);
         pThis = reinterpret_cast<MainWindow*>(pCreateStruct->lpCreateParams);
+
+        // Updating window storage, setting user data in this case hence GWLP_USERDATA
         SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
     } else {
         // Get the 'this' pointer from user data

@@ -113,11 +113,6 @@ bool GraphicsContext::ResizeSwapChain(uint32_t Width, uint32_t Height) {
         return true;
     }
 
-    if (!mSwapChain->FlushAll()) {
-        LOG_ERROR(L"\tFailed to flush the swap chain's graphics queue.\n");
-        return false;
-    }
-
     if (!mSwapChain->Resize(Width, Height)) {
         LOG_ERROR(L"\tFailed to resize the swap chain.\n");
         return false;

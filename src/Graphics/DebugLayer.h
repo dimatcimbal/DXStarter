@@ -9,6 +9,10 @@
  * It provides functionality to create debug layers and report live DirectX objects.
  */
 class DebugLayer {
+    // Alias for Microsoft::WRL::ComPtr
+    template <typename T>
+    using ComPtr = Microsoft::WRL::ComPtr<T>;
+
    public:
     /**
      * Factory method to create a DebugLayer instance.
@@ -19,9 +23,8 @@ class DebugLayer {
     static bool Create(std::unique_ptr<DebugLayer>& OutDebugLayer);
 
 #ifdef _DEBUG
-    DebugLayer(Microsoft::WRL::ComPtr<ID3D12Debug6>&& d3dDebug,
-               Microsoft::WRL::ComPtr<IDXGIDebug1>&& dxgiDebug)
-        : mD3DDebug(std::move(d3dDebug)), mDXGIDebug(std::move(dxgiDebug)) {};
+    DebugLayer(ComPtr<ID3D12Debug6>&& d3dDebug, ComPtr<IDXGIDebug1>&& dxgiDebug)
+        : mD3DDebug{std::move(d3dDebug)}, mDXGIDebug{std::move(dxgiDebug)} {};
 #else
     DebugLayer() = default;
 #endif
@@ -43,9 +46,9 @@ class DebugLayer {
 #ifdef _DEBUG
    private:
     // DirectX debug layer interface
-    Microsoft::WRL::ComPtr<ID3D12Debug6> mD3DDebug;
+    ComPtr<ID3D12Debug6> mD3DDebug;
 
     // DXGI debug interface
-    Microsoft::WRL::ComPtr<IDXGIDebug1> mDXGIDebug;
+    ComPtr<IDXGIDebug1> mDXGIDebug;
 #endif
 };

@@ -1,5 +1,7 @@
 #include "Device.h"
 
+#include <vector>
+
 #include "CommandAllocator.h"
 #include "CommandQueue.h"
 #include "DescriptorHeap.h"
