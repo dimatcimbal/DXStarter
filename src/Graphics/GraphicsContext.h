@@ -27,10 +27,10 @@ class GraphicsContext {
                     std::unique_ptr<CommandAllocator>&& CommandAllocator,
                     std::unique_ptr<Device> Device,
                     std::unique_ptr<DebugLayer>&& DebugLayer)
-        : mCommandQueue(std::move(CommandQueue)),
-          mCommandAllocator(std::move(CommandAllocator)),
-          mDevice(std::move(Device)),
-          mDebugLayer(std::move(DebugLayer)) {}
+        : mCommandQueue{std::move(CommandQueue)},
+          mCommandAllocator{std::move(CommandAllocator)},
+          mDevice{std::move(Device)},
+          mDebugLayer{std::move(DebugLayer)} {}
 
     ~GraphicsContext() {
         LOG_INFO(L"\tFreeing GraphicsContext.\n");

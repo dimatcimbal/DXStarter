@@ -5,7 +5,7 @@
 
 class Renderer {
    public:
-    Renderer(GraphicsContext* GraphicsContext) : mGraphicsContext(GraphicsContext) {}
+    Renderer(GraphicsContext* GraphicsContext) : mGraphicsContext{GraphicsContext} {}
     ~Renderer() = default;
 
     // Prohibit copying

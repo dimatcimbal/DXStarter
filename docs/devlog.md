@@ -1,4 +1,9 @@
-# Development Steps
+# Devlog
+
+
+## Back Buffer (git:dx/06-back-buffer)
+* As the `SwapChain` gets resized on `SwapChain::Resize` get references to the underlying buffers from the Swap Chain using `IDXGISwapChain3::GetBuffer`
+    * Remember to free the references within `SwapChain::FlushAll` to avoid memory leaks.
 
 ## Swap Chain (git:dx/05-swap-chain)
 * Create SwapChain class that wraps a `IDXGISwapChain1` and manages back buffer resources for rendering.

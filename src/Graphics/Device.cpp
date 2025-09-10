@@ -1,5 +1,7 @@
 #include "Device.h"
 
+#include <vector>
+
 #include "CommandAllocator.h"
 #include "CommandQueue.h"
 #include "Logging/Logging.h"
@@ -13,8 +15,6 @@ bool Device::CreateSwapChain(HWND hWnd,
                              DXGI_FORMAT Format,
                              uint32_t Flags,
                              std::unique_ptr<SwapChain>& OutSwapChain) const {
-    using Microsoft::WRL::ComPtr;
-
     // Swap chain desc
     DXGI_SWAP_CHAIN_DESC1 desc;
     desc.Width = Width;
@@ -61,8 +61,6 @@ bool Device::CreateSwapChain(HWND hWnd,
 bool Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE Type,
                                     D3D12_COMMAND_LIST_FLAGS Flags,
                                     std::unique_ptr<CommandAllocator>& OutAllocator) const {
-    using Microsoft::WRL::ComPtr;
-
     ComPtr<ID3D12CommandAllocator> pCommandAllocator;
     if (FAILED(mD3DDevice->CreateCommandAllocator(
             // Command list type (D3D12_COMMAND_LIST_TYPE_DIRECT /
@@ -98,8 +96,6 @@ bool Device::Create(D3D_FEATURE_LEVEL FeatureLevel,
                     bool IsHardwareDevice,
                     bool HasMaxVideoMemory,
                     std::unique_ptr<Device>& OutDevice) {
-    using Microsoft::WRL::ComPtr;
-
     ComPtr<IDXGIFactory7> pDXGIFactory;
     if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&pDXGIFactory)))) {
         LOG_ERROR(L"\t\tFailed to create DXGI factory.\n");
@@ -155,8 +151,6 @@ bool Device::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type,
                                 D3D12_COMMAND_QUEUE_FLAGS QueueFlags,
                                 D3D12_FENCE_FLAGS FenceFlags,
                                 std::unique_ptr<CommandQueue>& OutQueue) const {
-    using Microsoft::WRL::ComPtr;
-
     D3D12_COMMAND_QUEUE_DESC desc;
     desc.NodeMask = 0;  // pick the default gpu
     desc.Type = Type;

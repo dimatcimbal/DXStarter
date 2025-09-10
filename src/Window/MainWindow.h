@@ -41,7 +41,7 @@ class MainWindow {
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom, Renderer* Renderer)
-        : mHWnd(hWnd), mHInstance(hInstance), mWcAtom(wcAtom), mRenderer(Renderer) {
+        : mHWnd{hWnd}, mHInstance{hInstance}, mWcAtom{wcAtom}, mRenderer{Renderer} {
         // Display and update the main window.
         ShowWindow(hWnd, SW_SHOWDEFAULT);
         UpdateWindow(hWnd);
