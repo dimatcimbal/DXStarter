@@ -16,12 +16,22 @@ file(GLOB_RECURSE SRCS
     "${SRC_DIR}/*.h"
 )
 
+# VCPKG dependencies
+find_package(directx-headers CONFIG REQUIRED)
+find_path(D3DX12_INCLUDE_DIR "d3dx12.h")
+
 # executable with the name as the project name
 add_executable(${PROJECT_NAME} WIN32 ${SRCS})
 
 # configure includes
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${SRC_DIR}
+    ${D3DX12_INCLUDE_DIR}
+)
+
+# Use vcpkg targets for proper linking
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    Microsoft::DirectX-Headers
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -40,4 +50,3 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
     # Define UNICODE and _UNICODE to use wide-character versions of WinAPI functions in the macros like OutputDebugString
     UNICODE _UNICODE
 )
-
