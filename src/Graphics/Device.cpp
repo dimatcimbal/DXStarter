@@ -198,11 +198,19 @@ bool Device::CreateSwapChain(HWND hWnd,
     DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFullscreen;
     descFullscreen.Windowed = true;
 
-    ComPtr<IDXGISwapChain1> pDXGISwapChain;
+    // Create the swap chain as IDXGISwapChain1 first
+    ComPtr<IDXGISwapChain1> pSwapChain1;
     if (FAILED(mDXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetD3D12CommandQueue(), hWnd,
                                                     &desc, &descFullscreen, nullptr,
-                                                    &pDXGISwapChain))) {
+                                                    &pSwapChain1))) {
         LOG_ERROR(L"\t\tFailed to create DXGI swap chain.\n");
+        return false;
+    }
+
+    // Query for IDXGISwapChain4 as we need it for GetCurrentBackBufferIndex()
+    ComPtr<IDXGISwapChain4> pDXGISwapChain;
+    if (FAILED(pSwapChain1.As(&pDXGISwapChain))) {
+        LOG_ERROR(L"\t\tFailed to query IDXGISwapChain4 interface.\n");
         return false;
     }
 

@@ -6,6 +6,8 @@
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 
+class CommandList10;
+
 class SwapChain {
     // Alias for Microsoft::WRL::ComPtr
     template <typename T>
@@ -32,11 +34,27 @@ class SwapChain {
     uint32_t GetBufferCount() const {
         return mBackBufferCount;
     }
-
+    
+    ID3D12Resource2* GetCurrentBackBuffer() const {
+        return mBackBuffers[mCurrentBackBufferIndex].Get();
+    }
+    
     // member functions
     bool FlushAll();
     bool Resize(uint32_t Width, uint32_t Height);
-    bool Present() const;
+    bool Present();
+
+    /**
+     * Transition the current back buffer to a render target state at the beginning of the frame.
+     * @param Cmd Command list to record the resource barrier commands into.
+     */
+    void BeginFrame(CommandList10& Cmd);
+
+    /**
+     * Transition the current back buffer to a present state at the end of the frame.
+     * @param Cmd Command list to record the resource barrier commands into.
+     */
+    void EndFrame(CommandList10& Cmd);
 
    private:
     /**
@@ -45,8 +63,9 @@ class SwapChain {
      */
     bool BuffersReadTo(std::vector<ComPtr<ID3D12Resource2>>& OutVector) const;
     void BuffersRelease();
-    
+
     uint32_t mBackBufferCount;
+    uint32_t mCurrentBackBufferIndex{0};
     DXGI_FORMAT mFormat;
     uint32_t mFlags;
 

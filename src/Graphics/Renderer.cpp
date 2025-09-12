@@ -1,6 +1,6 @@
 #include "Renderer.h"
 
-#include "CommandList.h"
+#include "CommandList10.h"
 #include "GraphicsContext.h"
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
@@ -8,7 +8,7 @@
 
 bool Renderer::Draw() const {
     // Get a command list
-    CommandList<ID3D12GraphicsCommandList10> cmdlist;
+    CommandList10 cmdlist;
     if (!mGraphicsContext->GetCommandList(cmdlist)) {
         LOG_ERROR(L"Failed to draw a frame.\n");
         return false;

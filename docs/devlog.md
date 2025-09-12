@@ -1,9 +1,30 @@
 # Devlog
 
+## Back Buffer (git:dx/07-back-buffer)
 
-## Back Buffer (git:dx/06-back-buffer)
-* As the `SwapChain` gets resized on `SwapChain::Resize` get references to the underlying buffers from the Swap Chain using `IDXGISwapChain3::GetBuffer`
-    * Remember to free the references within `SwapChain::FlushAll` to avoid memory leaks.
+* Extend the `SwapChain` class to manage back buffer resources.
+    1. Add `SwapChain::mBackBuffers` member to hold references to the back buffer resources.
+    2. Add `SwapChain::mCurrentBackBufferIndex` member to track the current back buffer index.
+    3. Get references to the underlying `SwapChain` as the `SwapChain` gets resized in `SwapChain::Resize`.
+        * Update `SwapChain::FlushAll` to release existing back buffer references, invoke the method before resizing.
+        * Use a loop to call `IDXGISwapChain3::GetBuffer` for each buffer in the swap chain and store the resulting
+          `ID3D12Resource` pointers in `mBackBuffers`.
+    4. Add `SwapChain::BeginFrame` and `SwapChain::EndFrame` methods to handle resource state transitions for the back
+       buffer at the start and end of each frame.
+        * `BeginFrame` transitions the current back buffer to `D3D12_RESOURCE_STATE_RENDER_TARGET`.
+        * `EndFrame` transitions the current back buffer to `D3D12_RESOURCE_STATE_PRESENT`.
+    5. Refactor the command list RAII wrapper `CommandList10` to interact with the swap chain to manage frame
+       transitions.
+        * `CommandList` constructor calls `SwapChain::BeginFrame` to prepare the back buffer for rendering.
+        * `CommandList` destructor calls `SwapChain::EndFrame` to prepare the back buffer for presentation.
+    6. Implement `SwapChain::GetCurrentBackBuffer` method to return the current back buffer resource based on
+       `mCurrentBackBufferIndex`.
+    7. Implement `SwapChain::GetCurrentBackBufferView` method to return a `D3D12_CPU_DESCRIPTOR_HANDLE` for the current
+       back buffer's render target view (RTV).
+        * Calculate the handle by offsetting from the base RTV handle using the descriptor size and current back buffer
+          index.
+    8. Ensure proper cleanup of back buffer resources in `SwapChain::FlushAll` by releasing all references in
+       `mBackBuffers`.
 
 ## Descriptor Heaps (git:dx/06-descriptor-heaps)
 

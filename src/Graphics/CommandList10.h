@@ -3,23 +3,31 @@
 #include "CommandQueue.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
+#include "SwapChain.h"
 
 /**
  * CommandList is a RAII wrapper for any ID3D12GraphicsCommandList version.
  * It ensures that the command list is executed and the command queue is waited on when it goes
  * out of scope.
  */
-template <typename TD3D12CommandList,
-          typename = std::enable_if_t<
-              std::is_base_of<ID3D12GraphicsCommandList, TD3D12CommandList>::value>>
-class CommandList {
+class CommandList10 {
    public:
-    CommandList() = default;
+    CommandList10() = default;
 
-    CommandList(CommandQueue* CommandQueue, TD3D12CommandList* CommandList)
-        : mCommandQueue{CommandQueue}, mCommandList{CommandList} {}
+    CommandList10(CommandQueue* CommandQueue,
+                  SwapChain* mSwapChain,
+                  ID3D12GraphicsCommandList10* CommandList)
+        : mCommandQueue{CommandQueue}, mSwapChain{mSwapChain}, mCommandList{CommandList} {
+        // Begin the frame on the swap chain
+        mSwapChain->BeginFrame(*this);
+    }
 
-    ~CommandList() {
+    ~CommandList10() {
+        // End the frame on the swap chain
+        if (mSwapChain) {
+            mSwapChain->EndFrame(*this);
+        }
+
         // Execute and wait on current command list if valid
         if (mCommandQueue && mCommandList) {
             if (!mCommandQueue->ExecuteCommandList(mCommandList)) {
@@ -32,22 +40,25 @@ class CommandList {
     }
 
     // Prohibit copying
-    CommandList(const CommandList& copy) = delete;
-    CommandList& operator=(const CommandList& copy) = delete;
+    CommandList10(const CommandList10& copy) = delete;
+    CommandList10& operator=(const CommandList10& copy) = delete;
 
     // Move constructor
-    CommandList(CommandList&& other) noexcept
+    CommandList10(CommandList10&& other) noexcept
         : mCommandQueue{other.mCommandQueue}, mCommandList{other.mCommandList} {
+        other.mSwapChain = nullptr;
         other.mCommandQueue = nullptr;
         other.mCommandList = nullptr;
     }
 
     // Move assignment operator
-    CommandList& operator=(CommandList&& other) noexcept {
+    CommandList10& operator=(CommandList10&& other) noexcept {
         if (this != &other) {
             // The command list doesn't own these resources, so just move the pointers
+            mSwapChain = other.mSwapChain;
             mCommandQueue = other.mCommandQueue;
             mCommandList = other.mCommandList;
+            other.mSwapChain = nullptr;
             other.mCommandQueue = nullptr;
             other.mCommandList = nullptr;
         }
@@ -57,11 +68,12 @@ class CommandList {
     /**
      * Allows CommandList to be used as if it were a pointer to the command list type.
      */
-    TD3D12CommandList* operator->() const {
+    ID3D12GraphicsCommandList10* operator->() const {
         return mCommandList;
     }
 
    private:
+    SwapChain* mSwapChain{nullptr};
     CommandQueue* mCommandQueue{nullptr};
-    TD3D12CommandList* mCommandList{nullptr};
+    ID3D12GraphicsCommandList10* mCommandList{nullptr};
 };

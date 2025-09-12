@@ -54,15 +54,21 @@ bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
     return true;
 }
 
-bool GraphicsContext::GetCommandList(
-    CommandList<ID3D12GraphicsCommandList10>& OutCommandList) const {
+bool GraphicsContext::GetCommandList(CommandList10& OutCommandList) const {
+    if (!mSwapChain) {
+        LOG_ERROR(
+            L"\tSwapChain is not initialized. "
+            "Use GraphicsContext::CreateSwapChain before getting a command list.\n");
+        return false;
+    }
+
     ID3D12GraphicsCommandList10* pD3DCommandList;
     if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
         LOG_ERROR(L"Failed to get command list from the allocator.\n");
         return false;
     }
 
-    OutCommandList = CommandList(mCommandQueue.get(), pD3DCommandList);
+    OutCommandList = CommandList10(mCommandQueue.get(), mSwapChain.get(), pD3DCommandList);
     return true;
 }
 
