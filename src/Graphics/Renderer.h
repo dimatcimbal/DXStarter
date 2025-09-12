@@ -1,11 +1,11 @@
 #pragma once
 #include <Windows.h>
 
-#include "Graphics/GraphicsContext.h"
+#include "GraphicsContext.h"
 
 class Renderer {
    public:
-    Renderer(GraphicsContext* GraphicsContext) : mGraphicsContext(GraphicsContext) {}
+    Renderer(GraphicsContext* GraphicsContext) : mGraphicsContext{GraphicsContext} {}
     ~Renderer() = default;
 
     // Prohibit copying

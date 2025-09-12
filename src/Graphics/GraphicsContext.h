@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include "CommandList.h"
+#include "CommandList10.h"
 #include "DebugLayer.h"
 #include "Device.h"
 #include "SwapChain.h"
@@ -27,10 +27,10 @@ class GraphicsContext {
                     std::unique_ptr<CommandAllocator>&& CommandAllocator,
                     std::unique_ptr<Device> Device,
                     std::unique_ptr<DebugLayer>&& DebugLayer)
-        : mCommandQueue(std::move(CommandQueue)),
-          mCommandAllocator(std::move(CommandAllocator)),
-          mDevice(std::move(Device)),
-          mDebugLayer(std::move(DebugLayer)) {}
+        : mCommandQueue{std::move(CommandQueue)},
+          mCommandAllocator{std::move(CommandAllocator)},
+          mDevice{std::move(Device)},
+          mDebugLayer{std::move(DebugLayer)} {}
 
     ~GraphicsContext() {
         LOG_INFO(L"\tFreeing GraphicsContext.\n");
@@ -48,7 +48,7 @@ class GraphicsContext {
      * Returns a command list for recording graphics commands. The command list is RAII wrapped,
      * closes itself and executes when goes out of scope.
      */
-    bool GetCommandList(CommandList<ID3D12GraphicsCommandList10>& OutCommandList) const;
+    bool GetCommandList(CommandList10& OutCommandList) const;
     bool Present() const;
 
     // Window event handlers

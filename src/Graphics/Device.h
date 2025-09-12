@@ -7,6 +7,10 @@
 #include "SwapChain.h"
 
 class Device {
+    // Alias for Microsoft::WRL::ComPtr
+    template <typename T>
+    using ComPtr = Microsoft::WRL::ComPtr<T>;
+
    public:
     /**
      *
@@ -21,9 +25,8 @@ class Device {
                        bool HasMaxVideoMemory,
                        std::unique_ptr<Device>& OutDevice);
 
-    Device(Microsoft::WRL::ComPtr<IDXGIFactory7>&& DXGIFactory,
-           Microsoft::WRL::ComPtr<ID3D12Device14> D3DDevice)
-        : mDXGIFactory(std::move(DXGIFactory)), mD3DDevice(std::move(D3DDevice)) {};
+    Device(ComPtr<IDXGIFactory7>&& DXGIFactory, ComPtr<ID3D12Device14> D3DDevice)
+        : mDXGIFactory{std::move(DXGIFactory)}, mD3DDevice{std::move(D3DDevice)} {};
 
     ~Device() {
         LOG_INFO(L"\t\tFreeing Device.\n");
@@ -60,6 +63,6 @@ class Device {
     Device& operator=(const Device& copy) = delete;
 
    private:
-    Microsoft::WRL::ComPtr<IDXGIFactory7> mDXGIFactory;
-    Microsoft::WRL::ComPtr<ID3D12Device14> mD3DDevice;
+    ComPtr<IDXGIFactory7> mDXGIFactory;
+    ComPtr<ID3D12Device14> mD3DDevice;
 };
