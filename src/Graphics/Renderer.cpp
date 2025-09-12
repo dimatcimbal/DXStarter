@@ -1,7 +1,9 @@
 #include "Renderer.h"
 
 #include "CommandList.h"
-#include "Graphics/GraphicsContext.h"
+#include "GraphicsContext.h"
+#include "Includes/ComIncl.h"
+#include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
 
 bool Renderer::Draw() const {

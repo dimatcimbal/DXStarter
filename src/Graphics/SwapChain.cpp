@@ -1,5 +1,7 @@
 #include "SwapChain.h"
 
+#include "Includes/ComIncl.h"
+#include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
 
 bool SwapChain::Present() const {
@@ -35,7 +37,7 @@ void SwapChain::BuffersRelease() {
 bool SwapChain::Resize(uint32_t Width, uint32_t Height) {
     // Flush all GPU work and release references to the buffers.
     FlushAll();
-    
+
     // Resize the swap chain buffers.
     LOG_INFO(L"\t\tResizing swap chain buffers to %u x %u.\n", Width, Height);
     if (FAILED(

@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 
-#include "Graphics/GraphicsContext.h"
+#include "GraphicsContext.h"
 
 class Renderer {
    public:
