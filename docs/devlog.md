@@ -4,6 +4,13 @@
 ## Back Buffer (git:dx/06-back-buffer)
 * As the `SwapChain` gets resized on `SwapChain::Resize` get references to the underlying buffers from the Swap Chain using `IDXGISwapChain3::GetBuffer`
     * Remember to free the references within `SwapChain::FlushAll` to avoid memory leaks.
+    * Added `SwapChain::BeginFrame` and `SwapChain::EndFrame` methods to handle resource state transitions for the back buffer at the start and end of each frame.
+        * `BeginFrame` transitions the current back buffer to `D3D12_RESOURCE_STATE_RENDER_TARGET`.
+        * `EndFrame` transitions the current back buffer to `D3D12_RESOURCE_STATE_PRESENT`.
+    * Refactor the command list RAII wrapper `CommandList10` to interact with the swap chain to manage frame transitions. 
+        * `CommandList` constructor calls `SwapChain::BeginFrame` to prepare the back buffer for rendering.
+        * `CommandList` destructor calls `SwapChain::EndFrame` to prepare the back buffer for presentation.
+    * Update `SwapChain::mCurrentBackBufferIndex` in `SwapChain::Present` to reflect the current back buffer after presenting.
 
 ## Swap Chain (git:dx/05-swap-chain)
 * Create SwapChain class that wraps a `IDXGISwapChain1` and manages back buffer resources for rendering.
