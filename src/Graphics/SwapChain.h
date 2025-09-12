@@ -45,7 +45,7 @@ class SwapChain {
      */
     bool BuffersReadTo(std::vector<ComPtr<ID3D12Resource2>>& OutVector) const;
     void BuffersRelease();
-    
+
     uint32_t mSwapChainBufferCount;
     DXGI_FORMAT mFormat;
     uint32_t mFlags;

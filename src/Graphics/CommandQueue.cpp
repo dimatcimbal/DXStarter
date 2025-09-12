@@ -1,5 +1,9 @@
 #include "CommandQueue.h"
 
+#include "Includes/ComIncl.h"
+#include "Includes/GraphicsIncl.h"
+#include "Logging/Logging.h"
+
 bool CommandQueue::ExecuteCommandList(ID3D12GraphicsCommandList10* CommandList) {
     if (CommandList == nullptr) {
         LOG_ERROR(L"\t\tCommandList is null.\n");

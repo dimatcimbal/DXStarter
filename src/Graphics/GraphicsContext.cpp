@@ -1,6 +1,9 @@
 #include "GraphicsContext.h"
 
 #include "DebugLayer.h"
+#include "Includes/ComIncl.h"
+#include "Includes/GraphicsIncl.h"
+#include "Logging/Logging.h"
 
 bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
     std::unique_ptr<DebugLayer> pDebugLayer;

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <mutex>
-
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
