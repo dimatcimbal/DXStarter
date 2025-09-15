@@ -6,14 +6,14 @@
 
 bool Renderer::Draw() const {
     // Get a command list
-    CommandList<ID3D12GraphicsCommandList10> cmd;
-    if (!mGraphicsContext->GetCommandList(cmd)) {
+    CommandList<ID3D12GraphicsCommandList10> cmdlist;
+    if (!mGraphicsContext->GetCommandList(cmdlist)) {
         LOG_ERROR(L"Failed to draw a frame.\n");
         return false;
     }
 
     // TODO: cmd->DoSomething() calls
-    cmd->SetName(L"Graphics Command List");
+    cmdlist->SetName(L"Graphics Command List");
 
     // The command list gets closed and executed automatically
     return true;
