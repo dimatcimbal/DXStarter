@@ -1,6 +1,7 @@
 #pragma once
 #include "CommandAllocator.h"
 #include "CommandQueue.h"
+#include "DescriptorHeap.h"
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
@@ -39,6 +40,10 @@ class Device {
                             D3D12_COMMAND_QUEUE_FLAGS QueueFlags,
                             D3D12_FENCE_FLAGS FenceFlags,
                             std::unique_ptr<CommandQueue>& OutQueue) const;
+
+    bool CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type,
+                              uint32_t Count,
+                              std::unique_ptr<DescriptorHeap>& OutHeap) const;
 
     bool CreateSwapChain(HWND hWnd,
                          CommandQueue& GraphicsQueue,
