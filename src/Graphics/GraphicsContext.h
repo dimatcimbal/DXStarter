@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
 
-#include "CommandList.h"
+#include "CommandList10.h"
 #include "DebugLayer.h"
 #include "Device.h"
 #include "SwapChain.h"
@@ -56,7 +56,7 @@ class GraphicsContext {
      * Returns a command list for recording graphics commands. The command list is RAII wrapped,
      * closes itself and executes when goes out of scope.
      */
-    bool GetCommandList(CommandList<ID3D12GraphicsCommandList10>& OutCommandList) const;
+    bool GetCommandList(CommandList10& OutCommandList) const;
     bool Present() const;
 
     // Window event handlers
