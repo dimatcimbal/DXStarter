@@ -8,18 +8,19 @@
 #include <cstdio>  // required for swprintf_s
 #include <string>  // required for std::wstring
 
+#ifdef _DEBUG
 // Buffer size for logging macros
 #define LOGGING_BUFFER_SIZE 512
 
-// Debug output macro
-#define LOG_PRINT(msg, ...)                                         \
-    do {                                                            \
-        wchar_t buffer[LOGGING_BUFFER_SIZE];                        \
-        swprintf_s(buffer, _countof(buffer), msg, ##__VA_ARGS__);   \
-        /* Ensure UNICODE is defined for wide character support; */ \
-        /* see CMakeLists.txt */                                    \
-        OutputDebugString(buffer);                                  \
+#define LOG_PRINT(msg, ...)                                       \
+    do {                                                          \
+        wchar_t buffer[LOGGING_BUFFER_SIZE];                      \
+        swprintf_s(buffer, _countof(buffer), msg, ##__VA_ARGS__); \
+        OutputDebugString(buffer);                                \
     } while (0)
+#else
+#define LOG_PRINT(msg, ...) ((void)0)
+#endif
 
 // Helper macro for success messages
 #define LOG_SUCCESS(msg, ...) LOG_PRINT(L"[✅ DONE] " msg, ##__VA_ARGS__)
