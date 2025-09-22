@@ -15,7 +15,7 @@ bool Renderer::Draw() const {
     }
 
     // TODO: cmd->DoSomething() calls
-    cmdlist->SetName(L"Graphics Command List");
+    // cmdlist->SetName(L"Graphics Command List");
 
     // The command list gets closed and executed automatically
     return true;

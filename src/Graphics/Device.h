@@ -7,6 +7,9 @@
 #include "Logging/Logging.h"
 #include "SwapChain.h"
 
+// number of RTV descriptors to allocate in the heap
+constexpr uint32_t RTV_DESCRIPTOR_COUNT{256};
+
 class Device {
     // Alias for Microsoft::WRL::ComPtr
     template <typename T>
@@ -26,8 +29,12 @@ class Device {
                        bool HasMaxVideoMemory,
                        std::unique_ptr<Device>& OutDevice);
 
-    Device(ComPtr<IDXGIFactory7>&& DXGIFactory, ComPtr<ID3D12Device14> D3DDevice)
-        : mDXGIFactory{std::move(DXGIFactory)}, mD3DDevice{std::move(D3DDevice)} {};
+    Device(ComPtr<IDXGIFactory7>&& DXGIFactory,
+           ComPtr<ID3D12Device14> D3DDevice,
+           std::unique_ptr<DescriptorHeap> rtvHeap)
+        : mDXGIFactory{std::move(DXGIFactory)},
+          mD3DDevice{std::move(D3DDevice)},
+          mRTVHeap{std::move(rtvHeap)} {}
 
     ~Device() {
         LOG_INFO(L"\t\tFreeing Device.\n");
@@ -56,7 +63,11 @@ class Device {
                          DXGI_USAGE BufferUsage,
                          DXGI_FORMAT Format,
                          uint32_t Flags,
-                         std::unique_ptr<SwapChain>& OutSwapChain) const;
+                         std::unique_ptr<SwapChain>& OutSwapChain);
+
+    void CreateRTV(ID3D12Resource2* pResource,
+                   D3D12_RENDER_TARGET_VIEW_DESC& desc,
+                   D3D12_CPU_DESCRIPTOR_HANDLE& CpuHandle) const;
 
     void DisableAltEnterFullscreenToggle(HWND mHWnd) {
         // Disable the Alt+Enter fullscreen toggle feature. Switching to fullscreen
@@ -68,6 +79,8 @@ class Device {
     Device& operator=(const Device& copy) = delete;
 
    private:
+    std::unique_ptr<DescriptorHeap> mRTVHeap;
+
     ComPtr<IDXGIFactory7> mDXGIFactory;
     ComPtr<ID3D12Device14> mD3DDevice;
 };

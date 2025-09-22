@@ -1,6 +1,8 @@
 #include "SwapChain.h"
 
 #include "CommandList10.h"
+#include "CommandQueue.h"
+#include "Device.h"
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
@@ -15,23 +17,35 @@ bool SwapChain::Present() {
     return true;
 }
 
-bool SwapChain::BuffersReadTo(std::vector<ComPtr<ID3D12Resource2>>& OutVector) const {
+bool SwapChain::BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVector) const {
     LOG_INFO(L"\t\tReading swap chain buffers.\n");
     for (uint32_t i = 0; i < mBackBufferCount; ++i) {
-        if (FAILED(mDXGISwapChain->GetBuffer(i, IID_PPV_ARGS(&OutVector[i])))) {
+        ComPtr<ID3D12Resource2> pResource;
+        if (FAILED(mDXGISwapChain->GetBuffer(i, IID_PPV_ARGS(&pResource)))) {
             LOG_ERROR(L"\t\tFailed to get IDXGISwapChain buffer %d.\n", i);
             return false;
         }
+
+        D3D12_RENDER_TARGET_VIEW_DESC desc;
+        desc.Format = mFormat;
+        desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+        desc.Texture2D.MipSlice = 0;
+        desc.Texture2D.PlaneSlice = 0;
+
+        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
+        mDevice.CreateRTV(pResource.Get(), desc, rtvHandle);
+
+        OutVector[i] = std::make_unique<ColorBuffer>(rtvHandle, std::move(pResource));
     }
     return true;
 }
 
 void SwapChain::BuffersRelease() {
     LOG_INFO(L"\t\tReleasing swap chain buffers.\n");
+
+    // Release references to the buffers but remain the vector size intact.
     for (uint32_t i = 0; i < mBackBufferCount; ++i) {
-        if (mBackBuffers[i]) {
-            mBackBuffers[i].Reset();
-        }
+        mBackBuffers[i] = nullptr;
     }
 }
 
@@ -74,41 +88,16 @@ void SwapChain::BeginFrame(CommandList10& Cmd) {
     // Read the current back buffer index from mDXGISwapChain.
     mCurrentBackBufferIndex = mDXGISwapChain->GetCurrentBackBufferIndex();
 
-    // Prepare a resource barrier to transition the back buffer from PRESENT to RENDER_TARGET.
-    D3D12_RESOURCE_BARRIER barrier;
+    Cmd.TransitionResource(GetCurrentBackBuffer()->GetD3DResource(), D3D12_RESOURCE_STATE_PRESENT,
+                           D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    // Specifies a transition barrier.
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    float ClearColorRGBA[] = {0.4f, 0.6f, 0.9f, 1.0f};
+    Cmd.ClearTarget(GetCurrentBackBuffer()->GetRTV(), ClearColorRGBA);
 
-    // The resource to transition (current back buffer).
-    barrier.Transition.pResource = GetCurrentBackBuffer();
-
-    // Transition all subresources.
-    barrier.Transition.Subresource = 0;
-
-    // Transition the resource from the state used for presenting to the state used for rendering.
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-
-    Cmd->ResourceBarrier(1, &barrier);
+    Cmd.SetRenderTarget(GetCurrentBackBuffer()->GetRTV());
 }
 
 void SwapChain::EndFrame(CommandList10& Cmd) {
-    D3D12_RESOURCE_BARRIER barrier;
-    // Specifies a transition barrier.
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-
-    // The resource to transition (current back buffer).
-    barrier.Transition.pResource = GetCurrentBackBuffer();
-
-    // Transition all subresources.
-    barrier.Transition.Subresource = 0;
-
-    // Transition the resource from the state used for presenting to the state used for rendering.
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-
-    Cmd->ResourceBarrier(1, &barrier);
+    Cmd.TransitionResource(GetCurrentBackBuffer()->GetD3DResource(),
+                           D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 }

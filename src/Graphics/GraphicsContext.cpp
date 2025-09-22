@@ -36,21 +36,9 @@ bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
         return false;
     }
 
-    std::unique_ptr<DescriptorHeap> pRTVHeap;
-    if (!pDevice->CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, RTV_DESCRIPTOR_COUNT,
-                                       pRTVHeap)) {
-        LOG_ERROR(L"\tFailed to create the RTV Descriptor Heap.\n");
-        return false;
-    }
-
-    // TODO: Remove this DescriptorHeap verification test
-    D3D12_CPU_DESCRIPTOR_HANDLE testHandle;
-    pRTVHeap->AllocateHandles(1, testHandle);
-    LOG_INFO(L"\tAllocated RTV Descriptor Handle: %llu\n", testHandle.ptr);
-
-    OutContext = std::make_unique<GraphicsContext>(
-        std::move(pCommandQueue), std::move(pCommandAllocator), std::move(pRTVHeap),
-        std::move(pDevice), std::move(pDebugLayer));
+    OutContext =
+        std::make_unique<GraphicsContext>(std::move(pCommandQueue), std::move(pCommandAllocator),
+                                          std::move(pDevice), std::move(pDebugLayer));
     return true;
 }
 

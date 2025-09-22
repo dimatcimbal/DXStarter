@@ -45,7 +45,9 @@ class CommandList10 {
 
     // Move constructor
     CommandList10(CommandList10&& other) noexcept
-        : mCommandQueue{other.mCommandQueue}, mCommandList{other.mCommandList} {
+        : mSwapChain{other.mSwapChain},
+          mCommandQueue{other.mCommandQueue},
+          mCommandList{other.mCommandList} {
         other.mSwapChain = nullptr;
         other.mCommandQueue = nullptr;
         other.mCommandList = nullptr;
@@ -65,12 +67,22 @@ class CommandList10 {
         return *this;
     }
 
-    /**
-     * Allows CommandList to be used as if it were a pointer to the command list type.
-     */
-    ID3D12GraphicsCommandList10* operator->() const {
-        return mCommandList;
+    // Instance members
+    void ClearTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV, const float ColorRGBA[4]) const {
+        mCommandList->ClearRenderTargetView(RTV, ColorRGBA, 0, nullptr);
     }
+
+    void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV) const {
+        SetRenderTargets(1, &RTV);
+    }
+
+    void SetRenderTargets(uint32_t count, D3D12_CPU_DESCRIPTOR_HANDLE RTVs[]) const {
+        mCommandList->OMSetRenderTargets(count, RTVs, FALSE, nullptr);
+    }
+
+    void TransitionResource(ID3D12Resource2* Resource,
+                            D3D12_RESOURCE_STATES Before,
+                            D3D12_RESOURCE_STATES After) const;
 
    private:
     SwapChain* mSwapChain{nullptr};

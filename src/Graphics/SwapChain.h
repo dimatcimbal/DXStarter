@@ -2,10 +2,13 @@
 
 #include <vector>
 
-#include "CommandQueue.h"
+#include "ColorBuffer.h"
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 
+class Device;
+class DescriptorHeap;
+class CommandQueue;
 class CommandList10;
 
 class SwapChain {
@@ -17,11 +20,13 @@ class SwapChain {
     SwapChain(uint32_t BufferCount,
               DXGI_FORMAT Format,
               uint32_t Flags,
+              Device& pDevice,
               CommandQueue& GraphicsQueue,
               ComPtr<IDXGISwapChain4>&& DXGISwapChain)
         : mBackBufferCount{BufferCount},
           mFormat{Format},
           mFlags{Flags},
+          mDevice(pDevice),
           mGraphicsQueue{GraphicsQueue},
           mDXGISwapChain{std::move(DXGISwapChain)},
           mBackBuffers(BufferCount) {}
@@ -34,11 +39,11 @@ class SwapChain {
     uint32_t GetBufferCount() const {
         return mBackBufferCount;
     }
-    
-    ID3D12Resource2* GetCurrentBackBuffer() const {
-        return mBackBuffers[mCurrentBackBufferIndex].Get();
+
+    ColorBuffer* GetCurrentBackBuffer() const {
+        return mBackBuffers[mCurrentBackBufferIndex].get();
     }
-    
+
     // member functions
     bool FlushAll();
     bool Resize(uint32_t Width, uint32_t Height);
@@ -61,7 +66,11 @@ class SwapChain {
      * Retrieves the buffers from the DXGI swap chain and stores them in mBuffers.
      * @returns true if successful, false otherwise.
      */
-    bool BuffersReadTo(std::vector<ComPtr<ID3D12Resource2>>& OutVector) const;
+    bool BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVector) const;
+
+    /**
+     * Releases references to the buffers but keeps the vector size intact.
+     */
     void BuffersRelease();
 
     uint32_t mBackBufferCount;
@@ -69,7 +78,11 @@ class SwapChain {
     DXGI_FORMAT mFormat;
     uint32_t mFlags;
 
+    Device& mDevice;
     CommandQueue& mGraphicsQueue;
     ComPtr<IDXGISwapChain4> mDXGISwapChain;
-    std::vector<ComPtr<ID3D12Resource2>> mBackBuffers;
+
+    // IMPORTANT! Keep the size of the vector intact as mBackBufferCount,
+    // i.e. avoid clear, push_back, etc.
+    std::vector<std::unique_ptr<ColorBuffer>> mBackBuffers;
 };
