@@ -1,4 +1,31 @@
-# Development Steps
+# Devlog
+
+## Back Buffers (git:dx/07-back-buffers)
+
+* Extend the `SwapChain` class to manage back buffer resources using a new `ColorBuffer` class that wraps both the
+  resource and its RTV handle.
+    1. Add `SwapChain::mBackBuffers` as a vector of `std::unique_ptr<ColorBuffer>` to hold references to the back buffer
+       resources and their RTVs.
+    2. Add `SwapChain::mCurrentBackBufferIndex` to track the current back buffer index.
+    3. Update `SwapChain::FlushAll` to release references by setting vector elements to `nullptr`, keeping the vector
+       size intact.
+    4. Refactor `SwapChain::BuffersReadTo` to fill the vector with `ColorBuffer` objects, creating RTVs for each buffer
+       using `Device::CreateRTV`.
+    5. Add `SwapChain::BeginFrame` and `SwapChain::EndFrame` methods to handle resource state transitions for the back
+       buffer at the start and end of each frame:
+        * `SwapChain::BeginFrame`:
+            - Transitions the current back buffer to `D3D12_RESOURCE_STATE_RENDER_TARGET` using
+              `CommandList10::TransitionResource`.
+            - Clears the render target with `CommandList10::ClearTarget`.
+            - Sets the render target with `CommandList10::SetRenderTarget`.
+        * `SwapChain::EndFrame`:
+            - Transitions the current back buffer to `D3D12_RESOURCE_STATE_PRESENT` using
+              `CommandList10::TransitionResource`.
+    6. Implement `SwapChain::GetCurrentBackBuffer` to return a pointer to the current `ColorBuffer`.
+    7. Remove `SwapChain::GetCurrentBackBufferView` (now handled by `ColorBuffer::GetRTV`).
+    8. Descriptor heap creation and RTV allocation are now handled in `Device::Create` and `Device::CreateRTV`, not in
+       GraphicsContext.
+    9. GraphicsContext no longer owns the RTV heap; it is managed by Device.
 
 ## Descriptor Heaps (git:dx/06-descriptor-heaps)
 
@@ -7,9 +34,8 @@
     1. Add a `CreateHandles` method that allocates descriptor handles from the heap, automatically tracks usage via both
        `DescriptorHeap::mCurrentHandle` value and `DescriptorHeap::mFreeDescriptorCount` counter, and reports errors if
        running out of descriptors occurs.
-    2. Provide a `Device::CreateDescriptorHeap` method for creation of the `DescriptorHeap` object.
-    3. Update the `GraphicsContext` constructor and initialization so it now supports and owns a descriptor heap.
-    4. Verify that descriptor heap allocation works by testing handle creation during graphics context startup.
+    2. Update `Device::Create` method to create rtvHeap object of type `DescriptorHeap`.
+    3. Verify that descriptor heap allocation works by testing handle creation during the device startup.
 
 ## Swap Chain (git:dx/05-swap-chain)
 

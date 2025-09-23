@@ -1,6 +1,9 @@
 #include "GraphicsContext.h"
 
 #include "DebugLayer.h"
+#include "Includes/ComIncl.h"
+#include "Includes/GraphicsIncl.h"
+#include "Logging/Logging.h"
 
 bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
     std::unique_ptr<DebugLayer> pDebugLayer;
@@ -33,33 +36,27 @@ bool GraphicsContext::Create(std::unique_ptr<GraphicsContext>& OutContext) {
         return false;
     }
 
-    std::unique_ptr<DescriptorHeap> pRTVHeap;
-    if (!pDevice->CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, RTV_DESCRIPTOR_COUNT,
-                                       pRTVHeap)) {
-        LOG_ERROR(L"\tFailed to create the RTV Descriptor Heap.\n");
-        return false;
-    }
-
-    // TODO: Remove this DescriptorHeap verification test
-    D3D12_CPU_DESCRIPTOR_HANDLE testHandle;
-    pRTVHeap->AllocateHandles(1, testHandle);
-    LOG_INFO(L"\tAllocated RTV Descriptor Handle: %llu\n", testHandle.ptr);
-
-    OutContext = std::make_unique<GraphicsContext>(
-        std::move(pCommandQueue), std::move(pCommandAllocator), std::move(pRTVHeap),
-        std::move(pDevice), std::move(pDebugLayer));
+    OutContext =
+        std::make_unique<GraphicsContext>(std::move(pCommandQueue), std::move(pCommandAllocator),
+                                          std::move(pDevice), std::move(pDebugLayer));
     return true;
 }
 
-bool GraphicsContext::GetCommandList(
-    CommandList<ID3D12GraphicsCommandList10>& OutCommandList) const {
+bool GraphicsContext::GetCommandList(CommandList10& OutCommandList) const {
+    if (!mSwapChain) {
+        LOG_ERROR(
+            L"\tSwapChain is not initialized. "
+            "Use GraphicsContext::CreateSwapChain before getting a command list.\n");
+        return false;
+    }
+
     ID3D12GraphicsCommandList10* pD3DCommandList;
     if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
         LOG_ERROR(L"Failed to get command list from the allocator.\n");
         return false;
     }
 
-    OutCommandList = CommandList(mCommandQueue.get(), pD3DCommandList);
+    OutCommandList = CommandList10(mCommandQueue.get(), mSwapChain.get(), pD3DCommandList);
     return true;
 }
 
@@ -111,11 +108,6 @@ bool GraphicsContext::ResizeSwapChain(uint32_t Width, uint32_t Height) {
         // No change if the dimensions are the same which can happen when window is restored.
         LOG_INFO(L"\tNo change in swap chain dimensions. Window is restored.\n");
         return true;
-    }
-
-    if (!mSwapChain->FlushAll()) {
-        LOG_ERROR(L"\tFailed to flush the swap chain's graphics queue.\n");
-        return false;
     }
 
     if (!mSwapChain->Resize(Width, Height)) {

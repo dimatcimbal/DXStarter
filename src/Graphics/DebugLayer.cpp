@@ -1,5 +1,9 @@
 #include "DebugLayer.h"
 
+#include "Includes/ComIncl.h"
+#include "Includes/GraphicsIncl.h"
+#include "Logging/Logging.h"
+
 bool DebugLayer::Create(std::unique_ptr<DebugLayer>& OutDebugLayer) {
 #ifdef _DEBUG
     // Enable the D3D12 debug layer
