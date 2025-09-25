@@ -1,41 +1,22 @@
 #pragma once
 #include <Windows.h>
 
-#include "GraphicsContext.h"
+#include "Device.h"
 
 class Renderer {
    public:
-    Renderer(GraphicsContext* GraphicsContext) : mGraphicsContext{GraphicsContext} {}
-    ~Renderer() = default;
+    Renderer(Device* Device) : mDevice{Device} {}
+    ~Renderer() {
+        LOG_INFO(L"\tFreeing Renderer.\n");
+    }
 
     // Prohibit copying
     Renderer(const Renderer& copy) = delete;
     Renderer& operator=(const Renderer& copy) = delete;
 
     // Renderer state management methods below.
-
-    void OnCreate(HWND hWnd) {
-        LOG_INFO(L"Renderer::OnCreate with window handle %p\n", hWnd);
-        mGraphicsHwnd = hWnd;
-        mIsCreated = true;
-    }
-
-    void OnResize(int NewWidth, int NewHeight) {
-        LOG_INFO(L"Renderer::OnResize to %d x %d\n", NewWidth, NewHeight);
-
-        if (NewWidth == 0 || NewHeight == 0) {
-            // Window is minimized or has zero area; ignore resize
-            mIsMinimized = true;
-            return;
-        }
-
-        mWidth = static_cast<uint32_t>(NewWidth);
-        mHeight = static_cast<uint32_t>(NewHeight);
-
-        mIsMinimized = false;
-        mIsResized = true;
-    }
-
+    void OnCreate(HWND hWnd);
+    void OnResize(int NewWidth, int NewHeight);
     void Stop() {
         mIsRunning = false;
     }
@@ -50,9 +31,18 @@ class Renderer {
      */
     bool Draw() const;
 
+    bool FlushAll() const;
+
    private:
     // Not owned by this class
-    GraphicsContext* mGraphicsContext;
+    Device* mDevice;
+
+    // Owned resource
+    std::unique_ptr<SwapChain> mSwapChain;
+
+    // Cached window dimensions
+    uint32_t mWidth{0};
+    uint32_t mHeight{0};
 
     // Main loop control
     bool mIsRunning{true};
@@ -64,6 +54,6 @@ class Renderer {
     // OnResize args
     bool mIsMinimized{false};
     bool mIsResized{false};
-    uint32_t mWidth{0};
-    uint32_t mHeight{0};
+    uint32_t mNewWidth{0};
+    uint32_t mNewHeight{0};
 };

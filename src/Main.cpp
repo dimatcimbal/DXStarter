@@ -15,15 +15,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UNREFERENCED_PARAMETER(nCmdShow);
 
     // DX context
-    std::unique_ptr<GraphicsContext> pGraphicsContext;
-    if (!GraphicsContext::Create(pGraphicsContext)) {
-        LOG_ERROR(L"Failed to create GraphicsContext.\n");
+    std::unique_ptr<Device> pDevice;
+    if (!Device::Create(GRAPHICS_FEATURE_LEVEL, true, true, pDevice)) {
+        LOG_ERROR(L"Failed to create Device.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
     // The Renderer
-    auto pRenderer = std::make_unique<Renderer>(pGraphicsContext.get());
+    auto pRenderer = std::make_unique<Renderer>(pDevice.get());
 
     // The main window.
     std::unique_ptr<MainWindow> mainWindow;

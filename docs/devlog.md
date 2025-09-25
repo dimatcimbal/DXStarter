@@ -1,5 +1,22 @@
 # Devlog
 
+## Code Cleanup (git:dx/08-code-cleanup)
+
+* Refactor the graphics architecture by removing the `GraphicsContext` class and consolidating its functionality into the `Device` class for better separation of concerns and simplified resource management.
+    1. **Remove GraphicsContext and consolidate Device functionality**: Delete `GraphicsContext.cpp` and `GraphicsContext.h` files, eliminating the intermediate layer between `Device` and `Renderer`. Move all graphics resource creation and management directly into the `Device` class:
+        * Add static factory methods `Device::CreateCommandAllocator`, `Device::CreateCommandQueue`, `Device::CreateDescriptorHeap`, and `Device::GetBestDevice` to handle resource creation and adapter selection.
+        * Update `Device::Create` to initialize all core graphics resources (DebugLayer, CommandQueue, CommandAllocator, RTV DescriptorHeap) during device creation.
+        * Add `Device::GetCommandList` method to provide command lists directly to the renderer.
+    2. **Simplify SwapChain creation**: Update `Device::CreateSwapChain` to use default parameters and remove the need for external CommandQueue parameter, using hardcoded constants and accessing the graphics command queue through the device's internal `mGraphicsQueue` member.
+    3. **Update Renderer class**: Refactor `Renderer` to work directly with `Device` instead of `GraphicsContext`:
+        * Change constructor to accept `Device*` instead of `GraphicsContext*`.
+        * Add `mSwapChain` as an owned resource in `Renderer`.
+        * Update `Renderer::Draw()` to call `Device::GetCommandList()` instead of `GraphicsContext::GetCommandList()`.
+        * Move swap chain creation and resizing logic from `GraphicsContext` into `Renderer::Update()`.
+        * Add proper window dimension caching with `mNewWidth`/`mNewHeight` for resize operations.
+    4. **Enhance resource management**: Add proper destructor to `SwapChain` class that calls `FlushAll()` to ensure GPU operations complete before destruction. Update `Main.cpp` to replace `GraphicsContext::Create()` with direct `Device::Create()` call. Relocate `GRAPHICS_FEATURE_LEVEL` and `SWAP_CHAIN_BUFFER_COUNT` constants from `GraphicsContext.h` to `Device.h` where they are used.
+
+
 ## Back Buffers (git:dx/07-back-buffers)
 
 * Extend the `SwapChain` class to manage back buffer resources using a new `ColorBuffer` class that wraps both the
