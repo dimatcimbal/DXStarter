@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "CommandAllocator.h"
+#include "CommandList10.h"
 #include "CommandQueue.h"
 #include "DescriptorHeap.h"
 #include "Logging/Logging.h"
@@ -13,17 +14,65 @@ bool Device::Create(D3D_FEATURE_LEVEL FeatureLevel,
                     bool IsHardwareDevice,
                     bool HasMaxVideoMemory,
                     std::unique_ptr<Device>& OutDevice) {
+    std::unique_ptr<DebugLayer> pDebugLayer;
+    if (!DebugLayer::Create(pDebugLayer)) {
+        LOG_ERROR(L"\tFailed to initialize the Debug Layer.\n");
+        return false;
+    }
+
     ComPtr<IDXGIFactory7> pDXGIFactory;
     if (FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&pDXGIFactory)))) {
         LOG_ERROR(L"\t\tFailed to create DXGI factory.\n");
         return false;
     }
 
+    ComPtr<ID3D12Device14> pD3DDevice;
+    if (!GetBestDevice(pDXGIFactory, FeatureLevel, IsHardwareDevice, HasMaxVideoMemory,
+                       pD3DDevice)) {
+        LOG_ERROR(L"\t\tNo suitable D3D12 device found.\n");
+        return false;
+    }
+
+    // Wrappers for core D3D objects are below
+    constexpr D3D12_COMMAND_LIST_TYPE CommandListType = D3D12_COMMAND_LIST_TYPE_DIRECT;
+
+    std::unique_ptr<CommandQueue> pCommandQueue;
+    if (!CreateCommandQueue(pD3DDevice, CommandListType, D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+                            D3D12_COMMAND_QUEUE_FLAG_NONE, D3D12_FENCE_FLAG_NONE, pCommandQueue)) {
+        LOG_ERROR(L"\tFailed to create the Command Queue.\n");
+        return false;
+    }
+
+    std::unique_ptr<CommandAllocator> pCommandAllocator;
+    if (!CreateCommandAllocator(pD3DDevice, CommandListType, D3D12_COMMAND_LIST_FLAG_NONE,
+                                pCommandAllocator)) {
+        LOG_ERROR(L"\tFailed to create the Command Allocator.\n");
+        return false;
+    }
+
+    std::unique_ptr<DescriptorHeap> pRTVHeap;
+    if (!CreateDescriptorHeap(pD3DDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, RTV_DESCRIPTOR_COUNT,
+                              pRTVHeap)) {
+        LOG_ERROR(L"\tFailed to create the RTV Descriptor Heap.\n");
+        return false;
+    }
+
+    OutDevice = std::make_unique<Device>(std::move(pDebugLayer), std::move(pRTVHeap),
+                                         std::move(pCommandQueue), std::move(pCommandAllocator),
+                                         std::move(pDXGIFactory), std::move(pD3DDevice));
+    return true;
+}
+
+bool Device::GetBestDevice(ComPtr<IDXGIFactory7>& DXGIFactory,
+                           D3D_FEATURE_LEVEL FeatureLevel,
+                           bool IsHardwareDevice,
+                           bool HasMaxVideoMemory,
+                           ComPtr<ID3D12Device14>& OutD3DDevice) {
     ComPtr<IDXGIAdapter1> pAdapter;
     ComPtr<ID3D12Device14> pBestD3DDevice;
 
     SIZE_T maxVideoMemory{0};
-    for (uint32_t i{0}; pDXGIFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+    for (uint32_t i{0}; DXGIFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND; ++i) {
         // Get adapter description
         DXGI_ADAPTER_DESC1 desc;
         pAdapter->GetDesc1(&desc);
@@ -54,42 +103,23 @@ bool Device::Create(D3D_FEATURE_LEVEL FeatureLevel,
         }
     }
 
-    if (!pBestD3DDevice) {
-        LOG_ERROR(L"\t\tNo suitable D3D12 device found.\n");
-        return false;
+    // Successful outcome
+    if (pBestD3DDevice) {
+        OutD3DDevice = std::move(pBestD3DDevice);
+        return true;
     }
 
-    D3D12_DESCRIPTOR_HEAP_TYPE rtvDescType = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-
-    D3D12_DESCRIPTOR_HEAP_DESC rtvDesc;
-    rtvDesc.Type = rtvDescType;
-    rtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-    rtvDesc.NodeMask = 0;
-    rtvDesc.NumDescriptors = RTV_DESCRIPTOR_COUNT;
-
-    ComPtr<ID3D12DescriptorHeap> pDescriptorHeap;
-    if (FAILED(pBestD3DDevice->CreateDescriptorHeap(&rtvDesc, IID_PPV_ARGS(&pDescriptorHeap)))) {
-        LOG_ERROR(L"\t\tFailed to create D3D12 descriptor heap.\n");
-        return false;
-    }
-
-    uint32_t DescriptorSize = pBestD3DDevice->GetDescriptorHandleIncrementSize(rtvDescType);
-
-    std::unique_ptr<DescriptorHeap> pRTVHeap = std::make_unique<DescriptorHeap>(
-        rtvDescType, DescriptorSize, RTV_DESCRIPTOR_COUNT, std::move(pDescriptorHeap));
-
-    OutDevice = std::make_unique<Device>(std::move(pDXGIFactory), std::move(pBestD3DDevice),
-                                         std::move(pRTVHeap));
-    return true;
+    return false;
 }
 
-bool Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE Type,
+bool Device::CreateCommandAllocator(ComPtr<ID3D12Device14>& mD3DDevice,
+                                    D3D12_COMMAND_LIST_TYPE Type,
                                     D3D12_COMMAND_LIST_FLAGS Flags,
-                                    std::unique_ptr<CommandAllocator>& OutAllocator) const {
+                                    std::unique_ptr<CommandAllocator>& OutAllocator) {
     ComPtr<ID3D12CommandAllocator> pCommandAllocator;
     if (FAILED(mD3DDevice->CreateCommandAllocator(
-            // Command list type (D3D12_COMMAND_LIST_TYPE_DIRECT /
-            // D3D12_COMMAND_LIST_TYPE_COMPUTE, etc)
+            // Command list type (D3D12_COMMAND_LIST_TYPE_DIRECT or D3D12_COMMAND_LIST_TYPE_COMPUTE,
+            // etc)
             Type,
             // Return value
             IID_PPV_ARGS(&pCommandAllocator)))) {
@@ -117,11 +147,12 @@ bool Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE Type,
     return true;
 }
 
-bool Device::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type,
+bool Device::CreateCommandQueue(ComPtr<ID3D12Device14>& mD3DDevice,
+                                D3D12_COMMAND_LIST_TYPE Type,
                                 D3D12_COMMAND_QUEUE_PRIORITY Priority,
                                 D3D12_COMMAND_QUEUE_FLAGS QueueFlags,
                                 D3D12_FENCE_FLAGS FenceFlags,
-                                std::unique_ptr<CommandQueue>& OutQueue) const {
+                                std::unique_ptr<CommandQueue>& OutQueue) {
     D3D12_COMMAND_QUEUE_DESC desc;
     desc.NodeMask = 0;  // pick the default gpu
     desc.Type = Type;
@@ -157,9 +188,10 @@ bool Device::CreateCommandQueue(D3D12_COMMAND_LIST_TYPE Type,
     return true;
 }
 
-bool Device::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type,
+bool Device::CreateDescriptorHeap(ComPtr<ID3D12Device14>& mD3DDevice,
+                                  D3D12_DESCRIPTOR_HEAP_TYPE Type,
                                   uint32_t Count,
-                                  std::unique_ptr<DescriptorHeap>& OutHeap) const {
+                                  std::unique_ptr<DescriptorHeap>& OutHeap) {
     D3D12_DESCRIPTOR_HEAP_DESC desc;
     desc.Type = Type;
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -179,21 +211,44 @@ bool Device::CreateDescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE Type,
     return true;
 }
 
+// Instance members
+
+void Device::CreateRTV(ID3D12Resource2* pResource,
+                       D3D12_RENDER_TARGET_VIEW_DESC& desc,
+                       D3D12_CPU_DESCRIPTOR_HANDLE& OutHandle) const {
+    // Allocate a descriptor from the heap
+    mRTVHeap->AllocateHandles(1, OutHandle);
+    // Create the RTV
+    mD3DDevice->CreateRenderTargetView(pResource, &desc, OutHandle);
+}
+
 bool Device::CreateSwapChain(HWND hWnd,
-                             CommandQueue& GraphicsQueue,
                              uint32_t Width,
                              uint32_t Height,
-                             uint32_t BufferCount,
-                             DXGI_USAGE BufferUsage,
-                             DXGI_FORMAT Format,
-                             uint32_t Flags,
                              std::unique_ptr<SwapChain>& OutSwapChain) {
+    uint32_t BufferCount = SWAP_CHAIN_BUFFER_COUNT;
+
+    // DXGI_FORMAT_R8G8B8A8_UNORM is the most common swap chain format
+    DXGI_FORMAT BufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+    DXGI_USAGE BufferUsage =
+        // Back buffer (target for rendering)
+        DXGI_USAGE_BACK_BUFFER |
+        // output to a window (hwnd)
+        DXGI_USAGE_RENDER_TARGET_OUTPUT;
+
+    uint32_t BufferFlags =
+        // Create a flip-model swap chain
+        DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH |
+        // Skip vsync
+        DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+
     // Swap chain desc
     DXGI_SWAP_CHAIN_DESC1 desc;
     desc.Width = Width;
     desc.Height = Height;
-    desc.Format = Format;
-    desc.Flags = Flags;
+    desc.Format = BufferFormat;
+    desc.Flags = BufferFlags;
 
     // No stereo
     desc.Stereo = FALSE;
@@ -220,7 +275,7 @@ bool Device::CreateSwapChain(HWND hWnd,
 
     // Create the swap chain as IDXGISwapChain1 first
     ComPtr<IDXGISwapChain1> pSwapChain1;
-    if (FAILED(mDXGIFactory->CreateSwapChainForHwnd(GraphicsQueue.GetD3D12CommandQueue(), hWnd,
+    if (FAILED(mDXGIFactory->CreateSwapChainForHwnd(mGraphicsQueue->GetD3D12CommandQueue(), hWnd,
                                                     &desc, &descFullscreen, nullptr,
                                                     &pSwapChain1))) {
         LOG_ERROR(L"\t\tFailed to create DXGI swap chain.\n");
@@ -239,16 +294,18 @@ bool Device::CreateSwapChain(HWND hWnd,
         return false;
     }
 
-    OutSwapChain = std::make_unique<SwapChain>(BufferCount, Format, Flags, *this, GraphicsQueue,
-                                               std::move(pDXGISwapChain));
+    OutSwapChain = std::make_unique<SwapChain>(BufferCount, BufferFormat, BufferFlags, *this,
+                                               *mGraphicsQueue, std::move(pDXGISwapChain));
     return true;
 }
 
-void Device::CreateRTV(ID3D12Resource2* pResource,
-                       D3D12_RENDER_TARGET_VIEW_DESC& desc,
-                       D3D12_CPU_DESCRIPTOR_HANDLE& OutHandle) const {
-    // Allocate a descriptor from the heap
-    mRTVHeap->AllocateHandles(1, OutHandle);
-    // Create the RTV
-    mD3DDevice->CreateRenderTargetView(pResource, &desc, OutHandle);
+bool Device::GetCommandList(SwapChain& SwapChain, CommandList10& OutCommandList) const {
+    ID3D12GraphicsCommandList10* pD3DCommandList;
+    if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
+        LOG_ERROR(L"Failed to get command list from the allocator.\n");
+        return false;
+    }
+
+    OutCommandList = CommandList10(mGraphicsQueue.get(), &SwapChain, pD3DCommandList);
+    return true;
 }

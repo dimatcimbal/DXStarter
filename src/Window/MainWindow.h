@@ -4,7 +4,6 @@
 
 #include <memory>
 
-#include "Graphics/GraphicsContext.h"
 #include "Graphics/Renderer.h"
 
 // Main window class name for registration

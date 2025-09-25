@@ -31,6 +31,12 @@ class SwapChain {
           mDXGISwapChain{std::move(DXGISwapChain)},
           mBackBuffers(BufferCount) {}
 
+    ~SwapChain() {
+        // Flush the command queue for all the buffers in the swap chain to ensure all GPU
+        // operations are complete before destruction.
+        FlushAll();
+    }
+
     // Prohibit copying
     SwapChain(const SwapChain& copy) = delete;
     SwapChain& operator=(const SwapChain&) = delete;
@@ -47,7 +53,7 @@ class SwapChain {
     // member functions
     bool FlushAll();
     bool Resize(uint32_t Width, uint32_t Height);
-    bool Present();
+    bool Present() const;
 
     /**
      * Transition the current back buffer to a render target state at the beginning of the frame.
@@ -67,11 +73,6 @@ class SwapChain {
      * @returns true if successful, false otherwise.
      */
     bool BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVector) const;
-
-    /**
-     * Releases references to the buffers but keeps the vector size intact.
-     */
-    void BuffersRelease();
 
     uint32_t mBackBufferCount;
     uint32_t mCurrentBackBufferIndex{0};

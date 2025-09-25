@@ -7,16 +7,6 @@
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
 
-bool SwapChain::Present() {
-    uint32_t SyncInterval = 1;  // On the next vertical blank
-    uint32_t Flags = 0;         // No special flags
-    if (FAILED(mDXGISwapChain->Present(SyncInterval, Flags))) {
-        LOG_ERROR(L"\t\tFailed to present the swap chain.\n");
-        return false;
-    }
-    return true;
-}
-
 bool SwapChain::BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVector) const {
     LOG_INFO(L"\t\tReading swap chain buffers.\n");
     for (uint32_t i = 0; i < mBackBufferCount; ++i) {
@@ -40,13 +30,14 @@ bool SwapChain::BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVect
     return true;
 }
 
-void SwapChain::BuffersRelease() {
-    LOG_INFO(L"\t\tReleasing swap chain buffers.\n");
-
-    // Release references to the buffers but remain the vector size intact.
-    for (uint32_t i = 0; i < mBackBufferCount; ++i) {
-        mBackBuffers[i] = nullptr;
+bool SwapChain::Present() const {
+    uint32_t SyncInterval = 1;  // On the next vertical blank
+    uint32_t Flags = 0;         // No special flags
+    if (FAILED(mDXGISwapChain->Present(SyncInterval, Flags))) {
+        LOG_ERROR(L"\t\tFailed to present the swap chain.\n");
+        return false;
     }
+    return true;
 }
 
 bool SwapChain::Resize(uint32_t Width, uint32_t Height) {
@@ -78,9 +69,11 @@ bool SwapChain::FlushAll() {
         return false;
     }
 
-    // Clean the references to the buffers.
-    BuffersRelease();
-
+    LOG_INFO(L"\t\tReleasing swap chain buffers.\n");
+    // Release references to the buffers but keep the vector size intact.
+    for (uint32_t i = 0; i < mBackBufferCount; ++i) {
+        mBackBuffers[i] = nullptr;
+    }
     return true;
 }
 
@@ -91,6 +84,7 @@ void SwapChain::BeginFrame(CommandList10& Cmd) {
     Cmd.TransitionResource(GetCurrentBackBuffer()->GetD3DResource(), D3D12_RESOURCE_STATE_PRESENT,
                            D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+    // TODO: Remove this
     float ClearColorRGBA[] = {0.4f, 0.6f, 0.9f, 1.0f};
     Cmd.ClearTarget(GetCurrentBackBuffer()->GetRTV(), ClearColorRGBA);
 
