@@ -1,7 +1,7 @@
 {
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "cmake.configureOnOpen": true,
-    "cmake.generator": "Visual Studio 17 2022",
+    "cmake.generator": "Ninja",
     "cmake.platform": "x64",
     "files.associations": {
         "*.h": "cpp",
@@ -10,9 +10,18 @@
     },
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
-    "C_Cpp.intelliSenseEngine": "disabled",
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "C_Cpp.codeAnalysis.exclude": [
+        "**/build/**",
+        "**/CMakeFiles/**"
+    ],
     "cmake.configureSettings": {
-        "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS": "TRUE"
+        "CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS": "TRUE",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "${env:VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "VCPKG_FEATURE_FLAGS": "manifests"
     },
     "terminal.integrated.defaultProfile.windows": "PowerShell",
     "terminal.integrated.profiles.windows": {
@@ -22,9 +31,13 @@
         }
     },
     "files.exclude": {
-        "**/build/**": false,
+        "**/build/**": true,
         "**/CMakeFiles/**": true,
         "**/Debug/**": true,
         "**/Release/**": true
+    },
+    "search.exclude": {
+        "**/build/**": true,
+        "**/CMakeFiles/**": true
     }
 }
