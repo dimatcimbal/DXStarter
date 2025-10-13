@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 project(DXStarter VERSION 0.1.0)
 
 # config section below
-set(CMAKE_CXX_STANDARD 17) # enforce /std:c++17
+set(CMAKE_CXX_STANDARD 20) # enforce /std:c++20
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -37,9 +37,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE
     # user input, window management, etc.
     user32
+    
     # DX dependencies
     d3d12
+    
+    # DXGI for swap chain and other utilities
     dxgi
+
+    # DirectX debug layer
     dxguid
 )
 

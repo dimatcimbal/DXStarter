@@ -2,19 +2,17 @@
 
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
+#include "Resource.h"
 
-class ColorBuffer {
+class ColorBuffer : public Resource {
    public:
     ColorBuffer(D3D12_CPU_DESCRIPTOR_HANDLE RTVHandle,
                 Microsoft::WRL::ComPtr<ID3D12Resource2>&& pResource)
-        : mRTVHandle{RTVHandle}, mResource(std::move(pResource)) {}
+        : Resource(std::move(pResource)), mRTVHandle{RTVHandle} {}
 
+    // Prohibit copying
     ColorBuffer(const ColorBuffer&) = delete;
     ColorBuffer& operator=(const ColorBuffer&) = delete;
-
-    ID3D12Resource2* GetD3DResource() const {
-        return mResource.Get();
-    }
 
     D3D12_CPU_DESCRIPTOR_HANDLE GetRTV() const {
         return mRTVHandle;
@@ -22,5 +20,4 @@ class ColorBuffer {
 
    private:
     D3D12_CPU_DESCRIPTOR_HANDLE mRTVHandle;
-    Microsoft::WRL::ComPtr<ID3D12Resource2> mResource;
 };
