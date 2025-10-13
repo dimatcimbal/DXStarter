@@ -75,7 +75,7 @@ bool MainWindow::Create(Renderer* Renderer, std::unique_ptr<MainWindow>& OutWind
         pWindow.get());
 
     if (hWnd == nullptr) {
-        LOG_ERROR(L"CreateWindowEx failed. Error: %ls", std::to_wstring(GetLastError()).c_str());
+        LOG_ERROR(L"CreateWindowEx failed. Error: %d", GetLastError());
         return false;
     }
 
@@ -116,13 +116,13 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 LRESULT MainWindow::OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_CREATE: {
-            mRenderer->OnCreate(hWnd);
+            mRenderer->OnWindowCreate(hWnd);
             return 0;
         }
         case WM_SIZE: {
             int width = LOWORD(lParam);
             int height = HIWORD(lParam);
-            mRenderer->OnResize(width, height);
+            mRenderer->OnWindowResize(width, height);
             return 0;
         }
         case WM_CLOSE: {

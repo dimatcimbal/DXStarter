@@ -1,5 +1,29 @@
 # Changelog
 
+## [#18 Upload Vertex Data](https://github.com/dimatcimbal/DXStarter/pull/18)
+
+Added both Vertex and Upload buffers; added vertex data upload functionality.
+
+1. **Resource Management Architecture**:
+   * Created a base `Resource` class to wrap `ID3D12Resource2`.
+   * Added `DefaultBuffer` class inheriting from `Resource` for GPU-accessible buffers with heap type and size tracking.
+   * Added `UploadBuffer` class inheriting from `DefaultBuffer` for CPU-to-GPU data transfer with RAII mapping via `BufferRange` class.
+   * Added `ByteUtil` utility class with `AlignTo256Bytes` method for D3D12 constant buffer alignment requirements.
+
+2. **Vertex Data Loading System**:
+   * Added `Renderer::LoadVertexData` method for uploading vertex data using the upload buffer onto GPU.
+   * Added `CommandList10::CopyBufferRegion` method for efficient buffer-to-buffer copying.
+   * Updated `Main.cpp` to create vertex data for a simple triangle and upload it onto the GPU.
+
+3. **Command List Architecture Refactoring**:
+   * Separated general purpose `CommandList10` from frame-specific `FrameCommandList10` which holds a reference to the swap chain.
+   * Made `CommandList10::TransitionResource` a template method accepting any `Resource`-derived type.
+   * Added `CommandList10::operator->()` for direct access methods of the underlying `ID3D12GraphicsCommandList10`.
+
+4. **Device Buffer Creation**:
+   * Added `Device::CreateBuffer` template method for creating any `DefaultBuffer`-derived buffer type.
+   * Updated `Device::GetCommandList` and added `Device::GetFrameCommandList` for different command list usage patterns.
+
 ## [#13 Code Cleanup](https://github.com/dimatcimbal/DXStarter/pull/13)
 
 Refactored the graphics architecture by removing the `GraphicsContext` class and consolidating its functionality into

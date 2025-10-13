@@ -5,8 +5,10 @@
 #include "CommandAllocator.h"
 #include "CommandList10.h"
 #include "CommandQueue.h"
+#include "DebugLayer.h"
 #include "DescriptorHeap.h"
 #include "Logging/Logging.h"
+#include "SwapChain.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -275,7 +277,7 @@ bool Device::CreateSwapChain(HWND hWnd,
 
     // Create the swap chain as IDXGISwapChain1 first
     ComPtr<IDXGISwapChain1> pSwapChain1;
-    if (FAILED(mDXGIFactory->CreateSwapChainForHwnd(mGraphicsQueue->GetD3D12CommandQueue(), hWnd,
+    if (FAILED(mDXGIFactory->CreateSwapChainForHwnd(mCommandQueue->GetD3D12CommandQueue(), hWnd,
                                                     &desc, &descFullscreen, nullptr,
                                                     &pSwapChain1))) {
         LOG_ERROR(L"\t\tFailed to create DXGI swap chain.\n");
@@ -295,17 +297,28 @@ bool Device::CreateSwapChain(HWND hWnd,
     }
 
     OutSwapChain = std::make_unique<SwapChain>(BufferCount, BufferFormat, BufferFlags, *this,
-                                               *mGraphicsQueue, std::move(pDXGISwapChain));
+                                               *mCommandQueue, std::move(pDXGISwapChain));
     return true;
 }
 
-bool Device::GetCommandList(SwapChain& SwapChain, CommandList10& OutCommandList) const {
+bool Device::GetCommandList(CommandList10& OutCommandList) const {
     ID3D12GraphicsCommandList10* pD3DCommandList;
     if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
         LOG_ERROR(L"Failed to get command list from the allocator.\n");
         return false;
     }
 
-    OutCommandList = CommandList10(mGraphicsQueue.get(), &SwapChain, pD3DCommandList);
+    OutCommandList = CommandList10(mCommandQueue.get(), pD3DCommandList);
+    return true;
+}
+
+bool Device::GetFrameCommandList(SwapChain& SwapChain, FrameCommandList10& OutCommandList) const {
+    ID3D12GraphicsCommandList10* pD3DCommandList;
+    if (!mCommandAllocator->GetID3D12CommandList(pD3DCommandList)) {
+        LOG_ERROR(L"Failed to get command list from the allocator.\n");
+        return false;
+    }
+
+    OutCommandList = FrameCommandList10(&SwapChain, mCommandQueue.get(), pD3DCommandList);
     return true;
 }

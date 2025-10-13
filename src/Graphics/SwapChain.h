@@ -1,16 +1,21 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
-#include "ColorBuffer.h"
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
+#include "Resources/ColorBuffer.h"
 
+// Forward declarations
 class Device;
 class DescriptorHeap;
 class CommandQueue;
-class CommandList10;
+class FrameCommandList10;
 
+/**
+ * SwapChain class encapsulates a DXGI swap chain and its associated back buffers.
+ */
 class SwapChain {
     // Alias for Microsoft::WRL::ComPtr
     template <typename T>
@@ -46,8 +51,8 @@ class SwapChain {
         return mBackBufferCount;
     }
 
-    ColorBuffer* GetCurrentBackBuffer() const {
-        return mBackBuffers[mCurrentBackBufferIndex].get();
+    ColorBuffer& GetCurrentBackBuffer() const {
+        return *mBackBuffers[mCurrentBackBufferIndex];
     }
 
     // member functions
@@ -57,15 +62,15 @@ class SwapChain {
 
     /**
      * Transition the current back buffer to a render target state at the beginning of the frame.
-     * @param Cmd Command list to record the resource barrier commands into.
+     * @param Cmdl Command list to record the resource barrier commands into.
      */
-    void BeginFrame(CommandList10& Cmd);
+    void BeginFrame(FrameCommandList10& Cmdl);
 
     /**
      * Transition the current back buffer to a present state at the end of the frame.
      * @param Cmd Command list to record the resource barrier commands into.
      */
-    void EndFrame(CommandList10& Cmd);
+    void EndFrame(FrameCommandList10& Cmd);
 
    private:
     /**

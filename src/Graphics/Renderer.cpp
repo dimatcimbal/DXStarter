@@ -1,9 +1,71 @@
 #include "Renderer.h"
 
 #include "CommandList10.h"
+#include "Device.h"
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
+#include "SwapChain.h"
+
+bool Renderer::LoadVertexData(const void* data, size_t size) const {
+    // 1. Upload bytes to the upload buffer
+    if (!mUploadBuffer->UploadBytes(data, size)) {
+        LOG_ERROR(L"Failed to upload bytes to the upload buffer.\n");
+        return false;
+    }
+
+    // 2. Get a command list
+    CommandList10 cmdl;
+    if (!mDevice->GetCommandList(cmdl)) {
+        LOG_ERROR(L"Failed to get command list.\n");
+        return false;
+    }
+
+    // 3. Transition the upload buffer to GENERIC_READ
+    cmdl.TransitionResource(*mUploadBuffer,
+                            // From state
+                            D3D12_RESOURCE_STATE_COMMON,
+                            // To state
+                            D3D12_RESOURCE_STATE_GENERIC_READ);
+
+    // 4. Transition the vertex buffer to COPY_DEST
+    cmdl.TransitionResource(*mVertexBuffer,
+                            // From state
+                            D3D12_RESOURCE_STATE_COMMON,
+                            // To state
+                            D3D12_RESOURCE_STATE_COPY_DEST);
+
+    // 5. Copy from the upload buffer to the vertex buffer
+    cmdl.CopyBufferRegion(
+        // From
+        *mUploadBuffer, 0,
+        // To
+        *mVertexBuffer, size);
+
+    return true;
+}
+
+bool Renderer::Create(size_t VertexBufferSize,
+                      Device* pDevice,
+                      std::unique_ptr<Renderer>& OutRenderer) {
+    std::unique_ptr<DefaultBuffer> VertexBuffer;
+    if (!pDevice->CreateBuffer(L"VertexBuffer", D3D12_HEAP_TYPE_DEFAULT, VertexBufferSize,
+                               VertexBuffer)) {
+        LOG_ERROR(L"Failed to create default buffer.\n");
+        return false;
+    }
+
+    std::unique_ptr<UploadBuffer> UploadBuffer;
+    if (!pDevice->CreateBuffer(L"UploadBuffer", D3D12_HEAP_TYPE_UPLOAD, VertexBufferSize,
+                               UploadBuffer)) {
+        LOG_ERROR(L"Failed to create upload buffer.\n");
+        return false;
+    }
+
+    OutRenderer =
+        std::make_unique<Renderer>(pDevice, std::move(VertexBuffer), std::move(UploadBuffer));
+    return true;
+}
 
 bool Renderer::Draw() const {
     if (mSwapChain == nullptr) {
@@ -12,39 +74,17 @@ bool Renderer::Draw() const {
     }
 
     // Get a command list
-    CommandList10 cmdlist;
-    if (!mDevice->GetCommandList(*mSwapChain, cmdlist)) {
+    FrameCommandList10 cmdl;
+    if (!mDevice->GetFrameCommandList(*mSwapChain, cmdl)) {
         LOG_ERROR(L"Failed to draw a frame.\n");
         return false;
     }
 
-    // TODO: cmd->DoSomething() calls
-    // cmdlist->SetName(L"Graphics Command List");
+    cmdl->SetName(L"FrameCommandList");
+    // TODO: draw something with cmd->DoSomething()
 
-    // The command list gets closed and executed automatically
+    // The command list gets closed and executed automatically on exiting the scope
     return true;
-}
-
-void Renderer::OnCreate(HWND hWnd) {
-    LOG_INFO(L"Renderer::OnCreate with window handle %p\n", hWnd);
-    mGraphicsHwnd = hWnd;
-    mIsCreated = true;
-}
-
-void Renderer::OnResize(int NewWidth, int NewHeight) {
-    LOG_INFO(L"Renderer::OnResize to %d x %d\n", NewWidth, NewHeight);
-
-    if (NewWidth == 0 || NewHeight == 0) {
-        // Window is minimized or has zero area; ignore resize
-        mIsMinimized = true;
-        return;
-    }
-
-    mNewWidth = static_cast<uint32_t>(NewWidth);
-    mNewHeight = static_cast<uint32_t>(NewHeight);
-
-    mIsMinimized = false;
-    mIsResized = true;
 }
 
 bool Renderer::Update() {
@@ -100,4 +140,26 @@ bool Renderer::Update() {
     }
 
     return mIsRunning;
+}
+
+void Renderer::OnWindowCreate(HWND hWnd) {
+    LOG_INFO(L"Renderer::OnCreate with window handle %p\n", hWnd);
+    mGraphicsHwnd = hWnd;
+    mIsCreated = true;
+}
+
+void Renderer::OnWindowResize(int NewWidth, int NewHeight) {
+    LOG_INFO(L"Renderer::OnResize to %d x %d\n", NewWidth, NewHeight);
+
+    if (NewWidth == 0 || NewHeight == 0) {
+        // Window is minimized or has zero area; ignore resize
+        mIsMinimized = true;
+        return;
+    }
+
+    mNewWidth = static_cast<uint32_t>(NewWidth);
+    mNewHeight = static_cast<uint32_t>(NewHeight);
+
+    mIsMinimized = false;
+    mIsResized = true;
 }

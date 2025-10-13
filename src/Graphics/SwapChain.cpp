@@ -77,21 +77,21 @@ bool SwapChain::FlushAll() {
     return true;
 }
 
-void SwapChain::BeginFrame(CommandList10& Cmd) {
+void SwapChain::BeginFrame(FrameCommandList10& Cmdl) {
     // Read the current back buffer index from mDXGISwapChain.
     mCurrentBackBufferIndex = mDXGISwapChain->GetCurrentBackBufferIndex();
 
-    Cmd.TransitionResource(GetCurrentBackBuffer()->GetD3DResource(), D3D12_RESOURCE_STATE_PRESENT,
-                           D3D12_RESOURCE_STATE_RENDER_TARGET);
+    Cmdl.TransitionResource(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT,
+                            D3D12_RESOURCE_STATE_RENDER_TARGET);
 
     // TODO: Remove this
     float ClearColorRGBA[] = {0.4f, 0.6f, 0.9f, 1.0f};
-    Cmd.ClearTarget(GetCurrentBackBuffer()->GetRTV(), ClearColorRGBA);
+    Cmdl.ClearTarget(GetCurrentBackBuffer().GetRTV(), ClearColorRGBA);
 
-    Cmd.SetRenderTarget(GetCurrentBackBuffer()->GetRTV());
+    Cmdl.SetRenderTarget(GetCurrentBackBuffer().GetRTV());
 }
 
-void SwapChain::EndFrame(CommandList10& Cmd) {
-    Cmd.TransitionResource(GetCurrentBackBuffer()->GetD3DResource(),
-                           D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+void SwapChain::EndFrame(FrameCommandList10& Cmd) {
+    Cmd.TransitionResource(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+                           D3D12_RESOURCE_STATE_PRESENT);
 }
