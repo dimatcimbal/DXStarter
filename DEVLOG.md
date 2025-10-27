@@ -1,5 +1,47 @@
 # Changelog
 
+## [#19 Mesh classes](https://github.com/dimatcimbal/DXStarter/pull/19)
+
+Added mesh classes for instance-based rendering.
+
+1. **Mesh Classes**:
+   * Created `Mesh` class to hold vertex buffer data with move semantics.
+   * Added `MeshInstance` class for rendering multiple copies of the same mesh with separate CPU upload and GPU constant buffers.
+   * Added `Device::CreateMesh()` method for creating meshes from vertex data with proper buffer transitions.
+   * Added `Device::CreateMeshInstance()` method for creating mesh instances with dedicated constant buffers.
+   * Added `MeshInstance::Tick()` method for per-frame updates with delta time and constant buffer updates.
+   * Added `MeshInstance::Draw()` method for rendering mesh instances using command lists.
+
+2. **Application Integration**:
+   * Updated `Main.cpp` to showcase mesh creation workflow: create device → create mesh → create mesh instance → create renderer → assign model.
+   * Added simple triangle mesh creation and mesh instantiation in the main application flow.
+   * Connected mesh instance with renderer for complete rendering pipeline.
+
+3. **Renderer Updates**:
+   * Simplified `Renderer` constructor to only require `Device*` parameter, removing direct buffer handling.
+   * Added `Renderer::SetModel()` method to assign mesh instances for rendering.
+   * Added `Renderer::Tick()` method for per-frame updates with delta time calculation using `QueryPerformanceCounter`.
+   * Updated `Renderer::Draw()` to delegate rendering to the assigned mesh instance.
+   * Added timing variables with `mLastFrameTime`, `mFrequency`, and `mFirstFrame` members.
+
+4. **Resource Refactoring**:
+   * Renamed `DefaultBuffer` to `ByteBuffer` for better clarity and added move semantics support.
+   * Enhanced `Resource` base class with GPU virtual address caching and resource state tracking (`mState`, `mGpuVirtualAddress`).
+   * Added `Resource::SetCurrentState()` and `Resource::GetCurrentState()` methods for automatic state tracking.
+   * Updated `CommandList10::TransitionResource()` to automatically update resource state after transitions.
+
+5. **Upload Buffer Improvements**:
+   * Added `UploadBuffer::Map()` overload for mapping entire buffer without specifying offset/size.
+   * Changed `UploadBuffer::UploadBytes()` to use size-first parameter order for consistency.
+   * Added `BufferRange::UploadBytes()` method for direct data upload from mapped ranges.
+   * Enhanced `UploadBuffer` with proper move semantics support.
+
+6. **Graphics Infrastructure**:
+   * Added DirectX 12 constants (`D3D12_GPU_VIRTUAL_ADDRESS_NULL`, `D3D12_RESOURCE_STATES_NULL`, `D3D12_CPU_DESCRIPTOR_HANDLE_NULL`) to `GraphicsIncl.h`.
+   * Enhanced `ColorBuffer` with move semantics support for better resource handling.
+   * Updated all buffer creation methods to use `ByteBuffer` instead of `DefaultBuffer` for consistency.
+
+
 ## [#18 Upload Vertex Data](https://github.com/dimatcimbal/DXStarter/pull/18)
 
 Added both Vertex and Upload buffers; added vertex data upload functionality.

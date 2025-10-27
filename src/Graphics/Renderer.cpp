@@ -2,68 +2,25 @@
 
 #include "CommandList10.h"
 #include "Device.h"
-#include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
-#include "SwapChain.h"
 
-bool Renderer::LoadVertexData(const void* data, size_t size) const {
-    // 1. Upload bytes to the upload buffer
-    if (!mUploadBuffer->UploadBytes(data, size)) {
-        LOG_ERROR(L"Failed to upload bytes to the upload buffer.\n");
-        return false;
-    }
-
-    // 2. Get a command list
-    CommandList10 cmdl;
-    if (!mDevice->GetCommandList(cmdl)) {
-        LOG_ERROR(L"Failed to get command list.\n");
-        return false;
-    }
-
-    // 3. Transition the upload buffer to GENERIC_READ
-    cmdl.TransitionResource(*mUploadBuffer,
-                            // From state
-                            D3D12_RESOURCE_STATE_COMMON,
-                            // To state
-                            D3D12_RESOURCE_STATE_GENERIC_READ);
-
-    // 4. Transition the vertex buffer to COPY_DEST
-    cmdl.TransitionResource(*mVertexBuffer,
-                            // From state
-                            D3D12_RESOURCE_STATE_COMMON,
-                            // To state
-                            D3D12_RESOURCE_STATE_COPY_DEST);
-
-    // 5. Copy from the upload buffer to the vertex buffer
-    cmdl.CopyBufferRegion(
-        // From
-        *mUploadBuffer, 0,
-        // To
-        *mVertexBuffer, size);
-
+bool Renderer::Create(Device* Device, std::unique_ptr<Renderer>& OutRenderer) {
+    OutRenderer = std::make_unique<Renderer>(Device);
     return true;
 }
 
-bool Renderer::Create(size_t VertexBufferSize,
-                      Device* pDevice,
-                      std::unique_ptr<Renderer>& OutRenderer) {
-    std::unique_ptr<DefaultBuffer> VertexBuffer;
-    if (!pDevice->CreateBuffer(L"VertexBuffer", D3D12_HEAP_TYPE_DEFAULT, VertexBufferSize,
-                               VertexBuffer)) {
-        LOG_ERROR(L"Failed to create default buffer.\n");
-        return false;
+bool Renderer::Tick(float deltaTime) const {
+    if (mModel) {
+        CommandList10 Cmdl;
+        if (!mDevice->GetCommandList(Cmdl)) {
+            LOG_ERROR("Failed to get command list for model update.\n");
+            return false;
+        }
+
+        mModel->Tick(Cmdl, deltaTime);
     }
 
-    std::unique_ptr<UploadBuffer> UploadBuffer;
-    if (!pDevice->CreateBuffer(L"UploadBuffer", D3D12_HEAP_TYPE_UPLOAD, VertexBufferSize,
-                               UploadBuffer)) {
-        LOG_ERROR(L"Failed to create upload buffer.\n");
-        return false;
-    }
-
-    OutRenderer =
-        std::make_unique<Renderer>(pDevice, std::move(VertexBuffer), std::move(UploadBuffer));
     return true;
 }
 
@@ -74,22 +31,48 @@ bool Renderer::Draw() const {
     }
 
     // Get a command list
-    FrameCommandList10 cmdl;
-    if (!mDevice->GetFrameCommandList(*mSwapChain, cmdl)) {
+    FrameCommandList10 Cmdl;
+    if (!mDevice->GetFrameCommandList(*mSwapChain, Cmdl)) {
         LOG_ERROR(L"Failed to draw a frame.\n");
         return false;
     }
 
-    cmdl->SetName(L"FrameCommandList");
-    // TODO: draw something with cmd->DoSomething()
+    if (mModel) {
+        mModel->Draw(Cmdl);
+    }
 
     // The command list gets closed and executed automatically on exiting the scope
     return true;
 }
 
 bool Renderer::Update() {
-    // Scene update and the rendering part
-    // TODO: Scene update
+    // Calculate delta time
+    LARGE_INTEGER CurrentTime;
+    QueryPerformanceCounter(&CurrentTime);
+
+    float DeltaTime = 0.0f;
+    if (!mFirstFrame) {
+        // Get frequency on first frame
+        if (mFrequency.QuadPart == 0) {
+            QueryPerformanceFrequency(&mFrequency);
+        }
+
+        // Calculate delta time in seconds
+        DeltaTime = static_cast<float>(CurrentTime.QuadPart - mLastFrameTime.QuadPart) /
+                    static_cast<float>(mFrequency.QuadPart);
+    } else {
+        // First frame - initialize timing
+        QueryPerformanceFrequency(&mFrequency);
+        mFirstFrame = false;
+    }
+
+    mLastFrameTime = CurrentTime;
+
+    // Scene update
+    if (!Tick(DeltaTime)) {
+        LOG_ERROR("Failed to update the scene.\n");
+        return false;
+    }
 
     // Skip rendering when the window is minimized
     if (mIsMinimized) {

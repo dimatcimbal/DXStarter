@@ -3,9 +3,10 @@
 #include <utility>
 
 #include "CommandQueue.h"
-#include "Graphics/Resources/Resource.h"
+#include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
+#include "Resources/Resource.h"
 #include "SwapChain.h"
 
 /**
@@ -76,9 +77,7 @@ class CommandList10 {
      *  This is a template method that accepts any type derived from Resource.
      */
     template <typename T>
-    void TransitionResource(const T& Rsrc,
-                            D3D12_RESOURCE_STATES Before,
-                            D3D12_RESOURCE_STATES After) const
+    void TransitionResource(T& Rsrc, D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After)
         requires std::is_base_of_v<Resource, T>
     {
         // Prepare a resource barrier for transition.
@@ -90,6 +89,7 @@ class CommandList10 {
 
         // The resource to transition.
         barrier.Transition.pResource = Rsrc.GetResource();
+        Rsrc.SetCurrentState(After);
 
         // Transition only the first subresource (subresource index 0).
         barrier.Transition.Subresource = 0;

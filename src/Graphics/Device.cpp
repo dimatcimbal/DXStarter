@@ -2,13 +2,10 @@
 
 #include <vector>
 
-#include "CommandAllocator.h"
 #include "CommandList10.h"
-#include "CommandQueue.h"
-#include "DebugLayer.h"
-#include "DescriptorHeap.h"
+#include "Includes/ComIncl.h"
 #include "Logging/Logging.h"
-#include "SwapChain.h"
+#include "Mesh/MeshInstance.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -222,6 +219,85 @@ void Device::CreateRTV(ID3D12Resource2* pResource,
     mRTVHeap->AllocateHandles(1, OutHandle);
     // Create the RTV
     mD3DDevice->CreateRenderTargetView(pResource, &desc, OutHandle);
+}
+
+bool Device::CreateMesh(size_t Size, const void* Data, std::shared_ptr<Mesh>& OutMesh) {
+    // Create temporary CPU buffer
+    std::unique_ptr<UploadBuffer> MeshGeometryUploadBuffer;
+    if (!CreateBuffer(L"MeshGeometryUploadBuffer", D3D12_HEAP_TYPE_UPLOAD, Size,
+                      MeshGeometryUploadBuffer)) {
+        LOG_ERROR("Failed to create geometry upload buffer.\n");
+        return false;
+    }
+
+    // Upload bytes to the CPU buffer
+    if (!MeshGeometryUploadBuffer->UploadBytes(Size, Data)) {
+        LOG_ERROR(L"Failed to upload bytes to the geometry upload buffer.\n");
+        return false;
+    }
+
+    // Create the GPU vertex buffer
+    std::unique_ptr<ByteBuffer> MeshVertexBuffer;
+    if (!CreateBuffer(L"MeshVertexBuffer", D3D12_HEAP_TYPE_DEFAULT, Size, MeshVertexBuffer)) {
+        LOG_ERROR(L"Failed to create vertex buffer.\n");
+        return false;
+    }
+
+    // Get a command list
+    CommandList10 Cmdl;
+    if (!this->GetCommandList(Cmdl)) {
+        LOG_ERROR(L"Failed to get command list.\n");
+        return false;
+    }
+
+    // Transition the upload buffer to GENERIC_READ
+    Cmdl.TransitionResource(*MeshGeometryUploadBuffer,
+                            // From state
+                            D3D12_RESOURCE_STATE_COMMON,
+                            // To state
+                            D3D12_RESOURCE_STATE_GENERIC_READ);
+
+    // Transition the vertex buffer to COPY_DEST
+    Cmdl.TransitionResource(*MeshVertexBuffer,
+                            // From state
+                            D3D12_RESOURCE_STATE_COMMON,
+                            // To state
+                            D3D12_RESOURCE_STATE_COPY_DEST);
+
+    // 5. Copy from the upload buffer to the vertex buffer
+    Cmdl.CopyBufferRegion(
+        // From
+        *MeshGeometryUploadBuffer, 0,
+        // To
+        *MeshVertexBuffer, Size);
+
+    OutMesh = std::make_shared<Mesh>(std::move(*MeshVertexBuffer));
+
+    return true;
+}
+
+bool Device::CreateMeshInstance(std::shared_ptr<Mesh> Mesh,
+                                std::unique_ptr<MeshInstance>& OutModelInstance) {
+    size_t VertexDataSize = Mesh->GetVertexBufferSize();
+
+    std::unique_ptr<UploadBuffer> MeshConstCpuBuffer;
+    if (!CreateBuffer(L"MeshConstUploadBuffer", D3D12_HEAP_TYPE_UPLOAD, VertexDataSize,
+                      MeshConstCpuBuffer)) {
+        LOG_ERROR(L"Failed to create upload buffer.\n");
+        return false;
+    }
+
+    // The buffer that holds Model's matrices
+    std::unique_ptr<ByteBuffer> MeshConstGpuBuffer;
+    if (!CreateBuffer(L"MeshConstGpuBuffer", D3D12_HEAP_TYPE_DEFAULT, VertexDataSize,
+                      MeshConstGpuBuffer)) {
+        LOG_ERROR(L"Failed to create default buffer.\n");
+        return false;
+    }
+
+    OutModelInstance = std::make_unique<MeshInstance>(
+        std::move(Mesh), std::move(MeshConstCpuBuffer), std::move(MeshConstGpuBuffer));
+    return true;
 }
 
 bool Device::CreateSwapChain(HWND hWnd,
