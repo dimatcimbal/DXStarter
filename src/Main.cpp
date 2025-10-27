@@ -17,22 +17,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
 
-    // DX context
-    std::unique_ptr<Device> pDevice;
-    if (!Device::Create(GRAPHICS_FEATURE_LEVEL, true, true, pDevice)) {
-        LOG_ERROR(L"Failed to create Device.\n");
-        ShowErrorMessageBox();
-        return -1;
-    }
-
-    // The Renderer
-    std::unique_ptr<Renderer> pRenderer;
-    if (!Renderer::Create(1024, pDevice.get(), pRenderer)) {
-        LOG_ERROR(L"Failed to create Renderer.\n");
-        ShowErrorMessageBox();
-        return -1;
-    }
-
     // A simple triangle
     float vertexData[] = {// A (x,y)
                           -1.f, -1.f,
@@ -41,19 +25,45 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                           // C (x,y)
                           1.f, -1.f};
 
-    if (!pRenderer->LoadVertexData(vertexData, sizeof(vertexData))) {
-        LOG_ERROR(L"Failed to load bytes into the renderer.\n");
+    // DX context
+    std::unique_ptr<Device> Device;
+    if (!Device::Create(GRAPHICS_FEATURE_LEVEL, true, true, Device)) {
+        LOG_ERROR(L"Failed to create Device.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
+    std::shared_ptr<Mesh> Tri;
+    if (!Device->CreateMesh(sizeof(vertexData), vertexData, Tri)) {
+        LOG_ERROR(L"Failed to load create mesh.\n");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    std::unique_ptr<MeshInstance> Model;
+    if (!Device->CreateMeshInstance(Tri, Model)) {
+        LOG_ERROR(L"Failed to create MeshInstance.\n");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    // The Renderer
+    std::unique_ptr<Renderer> Renderer;
+    if (!Renderer::Create(Device.get(), Renderer)) {
+        LOG_ERROR(L"Failed to create Renderer.\n");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    Renderer->SetModel(std::move(Model));
+
     // The main window.
-    std::unique_ptr<MainWindow> mainWindow;
-    if (!MainWindow::Create(pRenderer.get(), mainWindow)) {
+    std::unique_ptr<MainWindow> MainWindow;
+    if (!MainWindow::Create(Renderer.get(), MainWindow)) {
         LOG_ERROR(L"Failed to create MainWindow.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
-    return mainWindow->Run();
+    return MainWindow->Run();
 }

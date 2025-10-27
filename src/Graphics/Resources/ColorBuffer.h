@@ -14,6 +14,18 @@ class ColorBuffer : public Resource {
     ColorBuffer(const ColorBuffer&) = delete;
     ColorBuffer& operator=(const ColorBuffer&) = delete;
 
+    // Allow moving
+    ColorBuffer(ColorBuffer&& other) noexcept
+        : Resource(std::move(other)),
+          mRTVHandle(std::exchange(other.mRTVHandle, D3D12_CPU_DESCRIPTOR_HANDLE_NULL)) {}
+    ColorBuffer& operator=(ColorBuffer&& other) noexcept {
+        if (this != &other) {
+            Resource::operator=(std::move(other));
+            mRTVHandle = std::exchange(other.mRTVHandle, D3D12_CPU_DESCRIPTOR_HANDLE_NULL);
+        }
+        return *this;
+    }
+
     D3D12_CPU_DESCRIPTOR_HANDLE GetRTV() const {
         return mRTVHandle;
     }

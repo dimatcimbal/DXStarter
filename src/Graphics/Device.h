@@ -10,7 +10,9 @@
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
-#include "Resources/DefaultBuffer.h"
+#include "Mesh/Mesh.h"
+#include "Mesh/MeshInstance.h"
+#include "Resources/ByteBuffer.h"
 #include "SwapChain.h"
 
 // Forward declarations
@@ -110,23 +112,28 @@ class Device {
                       D3D12_HEAP_TYPE Type,
                       size_t Size,
                       std::unique_ptr<T>& OutBuffer)
-        requires std::is_base_of_v<DefaultBuffer, T>
+        requires std::is_base_of_v<ByteBuffer, T>
     {
         size_t BufferSize = ByteUtil::AlignTo256Bytes(Size);
 
-        ComPtr<ID3D12Resource2> pDefaultBuffer;
+        ComPtr<ID3D12Resource2> pD3DBuffer;
         CD3DX12_HEAP_PROPERTIES heapProps{Type};
         CD3DX12_RESOURCE_DESC bufferDesc{CD3DX12_RESOURCE_DESC::Buffer(BufferSize)};
         if (FAILED(mD3DDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE,
                                                        &bufferDesc, D3D12_RESOURCE_STATE_COMMON,
-                                                       nullptr, IID_PPV_ARGS(&pDefaultBuffer)))) {
+                                                       nullptr, IID_PPV_ARGS(&pD3DBuffer)))) {
             LOG_ERROR(L"\t\tFailed to create buffer.\n");
             return false;
         }
-        pDefaultBuffer->SetName(Name.c_str());
-        OutBuffer = std::make_unique<T>(Type, Size, pDefaultBuffer);
+        pD3DBuffer->SetName(Name.c_str());
+        OutBuffer = std::make_unique<T>(Type, Size, pD3DBuffer);
         return true;
     }
+
+    bool CreateMesh(size_t Size, const void* Data, std::shared_ptr<Mesh>& OutMesh);
+
+    bool CreateMeshInstance(std::shared_ptr<Mesh> Model,
+                            std::unique_ptr<MeshInstance>& OutModelInstance);
 
     bool GetCommandList(CommandList10& OutCommandList) const;
 

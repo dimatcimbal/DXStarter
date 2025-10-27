@@ -5,7 +5,9 @@
 #include <memory>
 
 #include "Logging/Logging.h"
-#include "Resources/DefaultBuffer.h"
+#include "Mesh/Mesh.h"
+#include "Mesh/MeshInstance.h"
+#include "Resources/ByteBuffer.h"
 #include "Resources/UploadBuffer.h"
 #include "SwapChain.h"
 
@@ -17,16 +19,9 @@ class Device;
  */
 class Renderer {
    public:
-    static bool Create(size_t VertexBufferSize,
-                       Device* pDevice,
-                       std::unique_ptr<Renderer>& OutRenderer);
+    static bool Create(Device* Device, std::unique_ptr<Renderer>& OutRenderer);
 
-    Renderer(Device* Device,
-             std::unique_ptr<DefaultBuffer> mVertexBuffer,
-             std::unique_ptr<UploadBuffer> mUploadBuffer)
-        : mDevice{Device},
-          mVertexBuffer{std::move(mVertexBuffer)},
-          mUploadBuffer{std::move(mUploadBuffer)} {}
+    Renderer(Device* Device) : mDevice{Device} {}
 
     ~Renderer() {
         LOG_INFO(L"\tFreeing Renderer.\n");
@@ -40,7 +35,9 @@ class Renderer {
     void OnWindowCreate(HWND hWnd);
     void OnWindowResize(int NewWidth, int NewHeight);
 
-    bool LoadVertexData(const void* data, size_t size) const;
+    void SetModel(std::unique_ptr<MeshInstance>&& Model) {
+        mModel = std::move(Model);
+    }
 
     /*
      * Frame update function
@@ -58,16 +55,24 @@ class Renderer {
      */
     bool Draw() const;
 
+    /**
+     * Main loop tick function.
+     * @param deltaTime Time elapsed since last tick in seconds.
+     * @return True if the renderer should continue running, false to exit.
+     */
+    bool Tick(float deltaTime) const;
+
     bool FlushAll() const;
 
    private:
     // Not owned by this class
     Device* mDevice;
+    std::unique_ptr<MeshInstance> mModel;
 
     // Owned resource
     std::unique_ptr<SwapChain> mSwapChain;
     std::unique_ptr<UploadBuffer> mUploadBuffer;
-    std::unique_ptr<DefaultBuffer> mVertexBuffer;
+    std::unique_ptr<ByteBuffer> mVertexBuffer;
 
     // Cached window dimensions
     uint32_t mWidth{0};
@@ -85,4 +90,9 @@ class Renderer {
     bool mIsResized{false};
     uint32_t mNewWidth{0};
     uint32_t mNewHeight{0};
+
+    // Timing variables for delta time calculation
+    LARGE_INTEGER mLastFrameTime{};
+    LARGE_INTEGER mFrequency{};
+    bool mFirstFrame{true};
 };

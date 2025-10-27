@@ -2,32 +2,45 @@
 
 #include <utility>
 
-#include "DefaultBuffer.h"
+#include "ByteBuffer.h"
 #include "Resource.h"
 
 class BufferRange;
 
-class UploadBuffer : public DefaultBuffer {
+/**
+ * UploadBuffer CPU bound buffer class. Can map a region of the buffer for writing.
+ */
+class UploadBuffer : public ByteBuffer {
     friend BufferRange;
 
    public:
     UploadBuffer(D3D12_HEAP_TYPE Type,
                  size_t _265byteAlignedBufferSize,
                  Microsoft::WRL::ComPtr<ID3D12Resource2> pResource)
-        : DefaultBuffer(Type, _265byteAlignedBufferSize, std::move(pResource)) {}
+        : ByteBuffer(Type, _265byteAlignedBufferSize, std::move(pResource)) {}
 
     // Prohibit copying
     UploadBuffer(UploadBuffer& other) = delete;
     UploadBuffer& operator=(UploadBuffer& other) = delete;
 
-    // Instance members
+    // Allow moving
+    UploadBuffer(UploadBuffer&& other) noexcept : ByteBuffer(std::move(other)) {}
+
+    UploadBuffer& operator=(UploadBuffer&& other) noexcept {
+        if (this != &other) {
+            ByteBuffer::operator=(std::move(other));
+        }
+        return *this;
+    }
+
     /**
      * Maps a range of the buffer and returns a BufferRange object that will unmap it when it goes
      * out of scope.
      */
     BufferRange Map(size_t Offset, size_t Size);
+    BufferRange Map();
 
-    bool UploadBytes(const void* data, size_t size);
+    bool UploadBytes(size_t Size, const void* data);
 };
 
 /**
@@ -38,7 +51,7 @@ class BufferRange {
     BufferRange() = default;
 
     BufferRange(size_t Offset, size_t Size, UploadBuffer* Buffer)
-        : mBuffer(Buffer), mD3DRange(CD3DX12_RANGE(Offset, Size)) {
+        : mBuffer(Buffer), mSize(Size), mD3DRange(CD3DX12_RANGE(Offset, Size)) {
         Buffer->GetResource()->Map(0, &mD3DRange, &mPtr);
     }
 
@@ -54,24 +67,31 @@ class BufferRange {
 
     // Allow moving
     BufferRange(BufferRange&& other) noexcept {
+        mSize = std::exchange(other.mSize, 0);
+        mD3DRange = std::exchange(other.mD3DRange, {});
         mPtr = std::exchange(other.mPtr, nullptr);
         mBuffer = std::exchange(other.mBuffer, nullptr);
     }
 
     BufferRange& operator=(BufferRange&& other) noexcept {
         if (this != &other) {
+            mSize = std::exchange(other.mSize, 0);
+            mD3DRange = std::exchange(other.mD3DRange, {});
             mPtr = std::exchange(other.mPtr, nullptr);
             mBuffer = std::exchange(other.mBuffer, nullptr);
         }
         return *this;
     }
 
+    bool UploadBytes(size_t size, const void* data) const;
+
     void* GetPtr() const {
         return mPtr;
     }
 
    private:
-    void* mPtr = nullptr;
+    size_t mSize{0};
     D3D12_RANGE mD3DRange;
+    void* mPtr = nullptr;
     UploadBuffer* mBuffer = nullptr;
 };
