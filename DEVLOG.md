@@ -1,5 +1,82 @@
 # Changelog
 
+## [#20 Pipeline State Setup](https://github.com/dimatcimbal/DXStarter/pull/20)
+
+Implemented the DirectX 12 graphics pipeline setup with shader compilation, root signatures, pipeline state objects, and input assembly.
+
+1. **HLSL Shader Compilation System**:
+   * Added CMake build system integration for compiling HLSL shaders using DXC (DirectX Shader Compiler).
+   * Implemented automatic shader discovery with `file(GLOB_RECURSE)` to find all `.hlsl` files in `Resources/Shaders/`.
+   * Added shader type detection based on filename patterns: `*.rsign.hlsl` (root signatures), `*.pixel.hlsl` (pixel shaders), `*.vertx.hlsl` (vertex shaders).
+   * Configured per-config shader output directory (`${CMAKE_BINARY_DIR}/$<CONFIG>/Shaders/`) for Debug/Release builds.
+   * Added `Shaders` custom target that compiles all shaders and ensures application waits for shader compilation before building.
+
+2. **Shader Files**:
+   * Created `Default.rsign.hlsl`, `Default.vertx.hlsl`, and `Default.pixel.hlsl` shader files.
+   * All shaders include the root signature header and use `[RootSignature(ROOTSIGN)]` attribute.
+
+3. **Root Signature and Pipeline State Classes**:
+   * Added `RootSignature` class wrapping `ID3D12RootSignature`.
+   * Added `PipelineState` class wrapping `ID3D12PipelineState`.
+   * Added `Device::CreateRootSignature()` method that creates root signatures from compiled bytecode.
+   * Added `Device::CreatePipelineState()` method that creates graphics pipeline state objects from `D3D12_GRAPHICS_PIPELINE_STATE_DESC`.
+
+4. **Input Assembly Support**:
+   * Added `CommandList10::SetVertexBuffer()` method for binding vertex buffer views to the input assembler.
+   * Added `CommandList10::SetPrimitiveTopology()` method for setting primitive topology (e.g., triangle list).
+   * Added `CommandList10::DrawInstanced()` overloads for drawing primitives with instance support.
+   * Added `CommandList10::FlushResourceBarriers()` placeholder method for future resource barrier batching.
+   * Renamed `CommandList10::mCommandList` to `CommandList10::mD3DCommandList` for clarity.
+
+5. **Renderer Architecture Refactoring**:
+   * Refactored `Renderer` from managing swap chain and window lifecycle to managing only pipeline state.
+   * Moved pipeline state creation into `Renderer::Create()` with `D3D12_GRAPHICS_PIPELINE_STATE_DESC` configuration.
+   * Added `Renderer::Resize()` method to update viewport and scissor rect when window size changes.
+   * Changed `Renderer::Draw()` and `Renderer::Update()` to accept `CommandList10&` parameter instead of creating command lists internally.
+   * Removed swap chain, window lifecycle, and timing management from `Renderer` (moved to `DXView`).
+
+6. **DXView Class**:
+   * Created new `DXView` class to manage swap chain, window lifecycle, and frame timing.
+   * Moved swap chain creation and resizing logic from `Renderer` to `DXView::Update()`.
+   * Moved delta time calculation using `QueryPerformanceCounter` from `Renderer` to `DXView`.
+   * Added `DXView::OnWindowCreate()` and `DXView::OnWindowResize()` methods for window message handling.
+   * Integrated `DXView` with `Renderer` and `Device` for complete rendering pipeline coordination.
+
+7. **IO Utilities**:
+   * Added `Bytes` class for loading binary files (shader bytecode).
+   * Added `Bytes::Load()` static method that reads files into `std::byte[]` buffer.
+   * Added `Paths` class with `Paths::GetShaderDirAbsPath()` static method that returns absolute path to compiled shaders directory.
+   * Shader path resolution uses `GetModuleFileNameW()` to find executable directory and appends `Shaders` subdirectory.
+
+8. **Mesh Enhancements**:
+   * Updated `Mesh` constructor to accept `VertexCount` and `VertexStrideInBytes` parameters for proper vertex buffer configuration.
+   * Added `Mesh::GetVertexBufferView()` method that creates `D3D12_VERTEX_BUFFER_VIEW` with buffer location, size, and stride.
+   * Added `Mesh::GetVertexCount()` and `Mesh::GetStrideInBytes()` getter methods.
+   * Renamed `Mesh::GetVertexData()` to `Mesh::GetVertexBuffer()` for consistency.
+   * Updated `Device::CreateMesh()` to accept `VertexCount` and `VertexStrideInBytes` instead of raw size.
+
+9. **MeshInstance Updates**:
+   * Renamed `MeshInstance::Tick()` to `MeshInstance::Update()` for consistency with `Renderer::Update()`.
+   * Implemented `MeshInstance::Draw()` to set vertex buffer, primitive topology, and issue draw calls using `CommandList10::DrawInstanced()`.
+
+10. **Device Method Updates**:
+    * Renamed `Device::CreateRTV()` to `Device::CreateRenderTargetView()` for clarity.
+    * Updated `Device::GetBestDevice()` to handle adapter enumeration failures gracefully with proper error checking.
+    * Changed swap chain buffer format from `DXGI_FORMAT_R8G8B8A8_UNORM` to `DXGI_FORMAT_DEFAULT_RTV` constant.
+
+11. **MainWindow Integration**:
+    * Changed `MainWindow` to own `DXView` instance instead of `Renderer` pointer.
+    * Renamed `MainWindow::Run()` to `MainWindow::HandleMessages()` for clarity.
+    * Updated window message handlers to delegate to `DXView` methods.
+
+12. **Graphics Constants**:
+    * Added `DXGI_FORMAT_DEFAULT_RTV` constant (`DXGI_FORMAT_R8G8B8A8_UNORM`) to `GraphicsIncl.h`.
+    * Added `D3D12_GRAPHICS_PIPELINE_STATE_DESC_NULL` constant for pipeline state initialization.
+
+13. **Application Updates**:
+    * Updated `Main.cpp` to use 3D vertex data (x, y, z coordinates) instead of 2D.
+    * Updated mesh creation to specify vertex count (3) and vertex stride (`sizeof(float) * 3`).
+
 ## [#19 Mesh classes](https://github.com/dimatcimbal/DXStarter/pull/19)
 
 Added mesh classes for instance-based rendering.

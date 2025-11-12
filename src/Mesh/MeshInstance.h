@@ -33,7 +33,7 @@ class MeshInstance {
         return *this;
     }
 
-    bool Tick(CommandList10& Cmdl, float DeltaTime);
+    bool Update(CommandList10& Cmdl, float DeltaTime);
     bool Draw(CommandList10& Cmdl) const;
 
    private:

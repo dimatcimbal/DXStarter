@@ -3,9 +3,12 @@
 #include <vector>
 
 #include "CommandList10.h"
+#include "IO/Bytes.h"
 #include "Includes/ComIncl.h"
 #include "Logging/Logging.h"
 #include "Mesh/MeshInstance.h"
+#include "Resources/UploadBuffer.h"
+#include "RootSignature.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -73,12 +76,16 @@ bool Device::GetBestDevice(ComPtr<IDXGIFactory7>& DXGIFactory,
     SIZE_T maxVideoMemory{0};
     for (uint32_t i{0}; DXGIFactory->EnumAdapters1(i, &pAdapter) != DXGI_ERROR_NOT_FOUND; ++i) {
         // Get adapter description
-        DXGI_ADAPTER_DESC1 desc;
-        pAdapter->GetDesc1(&desc);
+        DXGI_ADAPTER_DESC1 Desc;
+        if (FAILED(pAdapter->GetDesc1(&Desc))) {
+            // Skip adapters that don't support GetDesc1 (e.g., non-graphics adapters)
+            pAdapter.Reset();
+            continue;
+        }
 
         // Check is a hardware adapter
-        if (IsHardwareDevice && (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
-            // we don't need the ComPtr anymore
+        if (IsHardwareDevice && (Desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)) {
+            // free the ComPtr
             pAdapter.Reset();
             continue;
         }
@@ -86,15 +93,15 @@ bool Device::GetBestDevice(ComPtr<IDXGIFactory7>& DXGIFactory,
         // Check adapter can create a D3D12 device
         ComPtr<ID3D12Device14> pD3D12Device;
         if (FAILED(D3D12CreateDevice(pAdapter.Get(), FeatureLevel, IID_PPV_ARGS(&pD3D12Device)))) {
-            // we don't need the ComPtr anymore
+            // free the ComPtr
             pAdapter.Reset();
             continue;
         }
 
         // Check adapter has the *most* dedicated video memory
         if (HasMaxVideoMemory) {
-            if (desc.DedicatedVideoMemory > maxVideoMemory) {
-                maxVideoMemory = desc.DedicatedVideoMemory;
+            if (Desc.DedicatedVideoMemory > maxVideoMemory) {
+                maxVideoMemory = Desc.DedicatedVideoMemory;
                 pBestD3DDevice = std::move(pD3D12Device);
             }
         } else {
@@ -152,7 +159,7 @@ bool Device::CreateCommandQueue(ComPtr<ID3D12Device14>& mD3DDevice,
                                 D3D12_COMMAND_QUEUE_FLAGS QueueFlags,
                                 D3D12_FENCE_FLAGS FenceFlags,
                                 std::unique_ptr<CommandQueue>& OutQueue) {
-    D3D12_COMMAND_QUEUE_DESC desc;
+    D3D12_COMMAND_QUEUE_DESC desc{};
     desc.NodeMask = 0;  // pick the default gpu
     desc.Type = Type;
     desc.Priority = Priority;
@@ -191,7 +198,7 @@ bool Device::CreateDescriptorHeap(ComPtr<ID3D12Device14>& mD3DDevice,
                                   D3D12_DESCRIPTOR_HEAP_TYPE Type,
                                   uint32_t Count,
                                   std::unique_ptr<DescriptorHeap>& OutHeap) {
-    D3D12_DESCRIPTOR_HEAP_DESC desc;
+    D3D12_DESCRIPTOR_HEAP_DESC desc{};
     desc.Type = Type;
     desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     desc.NodeMask = 0;
@@ -212,33 +219,39 @@ bool Device::CreateDescriptorHeap(ComPtr<ID3D12Device14>& mD3DDevice,
 
 // Instance members
 
-void Device::CreateRTV(ID3D12Resource2* pResource,
-                       D3D12_RENDER_TARGET_VIEW_DESC& desc,
-                       D3D12_CPU_DESCRIPTOR_HANDLE& OutHandle) const {
+void Device::CreateRenderTargetView(ID3D12Resource2* pResource,
+                                    D3D12_RENDER_TARGET_VIEW_DESC& desc,
+                                    D3D12_CPU_DESCRIPTOR_HANDLE& OutHandle) const {
     // Allocate a descriptor from the heap
     mRTVHeap->AllocateHandles(1, OutHandle);
     // Create the RTV
     mD3DDevice->CreateRenderTargetView(pResource, &desc, OutHandle);
 }
 
-bool Device::CreateMesh(size_t Size, const void* Data, std::shared_ptr<Mesh>& OutMesh) {
+bool Device::CreateMesh(uint32_t VertexCount,
+                        uint32_t VertexStrideInBytes,
+                        const void* Data,
+                        std::shared_ptr<Mesh>& OutMesh) {
+    size_t DataSizeInBytes = VertexCount * VertexStrideInBytes;
+
     // Create temporary CPU buffer
     std::unique_ptr<UploadBuffer> MeshGeometryUploadBuffer;
-    if (!CreateBuffer(L"MeshGeometryUploadBuffer", D3D12_HEAP_TYPE_UPLOAD, Size,
+    if (!CreateBuffer(L"MeshGeometryUploadBuffer", D3D12_HEAP_TYPE_UPLOAD, DataSizeInBytes,
                       MeshGeometryUploadBuffer)) {
         LOG_ERROR("Failed to create geometry upload buffer.\n");
         return false;
     }
 
     // Upload bytes to the CPU buffer
-    if (!MeshGeometryUploadBuffer->UploadBytes(Size, Data)) {
+    if (!MeshGeometryUploadBuffer->UploadBytes(DataSizeInBytes, Data)) {
         LOG_ERROR(L"Failed to upload bytes to the geometry upload buffer.\n");
         return false;
     }
 
     // Create the GPU vertex buffer
     std::unique_ptr<ByteBuffer> MeshVertexBuffer;
-    if (!CreateBuffer(L"MeshVertexBuffer", D3D12_HEAP_TYPE_DEFAULT, Size, MeshVertexBuffer)) {
+    if (!CreateBuffer(L"MeshVertexBuffer", D3D12_HEAP_TYPE_DEFAULT, DataSizeInBytes,
+                      MeshVertexBuffer)) {
         LOG_ERROR(L"Failed to create vertex buffer.\n");
         return false;
     }
@@ -269,10 +282,12 @@ bool Device::CreateMesh(size_t Size, const void* Data, std::shared_ptr<Mesh>& Ou
         // From
         *MeshGeometryUploadBuffer, 0,
         // To
-        *MeshVertexBuffer, Size);
+        *MeshVertexBuffer, DataSizeInBytes);
 
-    OutMesh = std::make_shared<Mesh>(std::move(*MeshVertexBuffer));
+    OutMesh =
+        std::make_shared<Mesh>(VertexCount, VertexStrideInBytes, std::move(*MeshVertexBuffer));
 
+    // Cmdl gets executed when exiting the scope
     return true;
 }
 
@@ -300,6 +315,31 @@ bool Device::CreateMeshInstance(std::shared_ptr<Mesh> Mesh,
     return true;
 }
 
+bool Device::CreateRootSignature(Bytes& Source,
+                                 std::unique_ptr<RootSignature>& OutRootSignature) const {
+    ComPtr<ID3D12RootSignature> pRootSignature;
+    if (FAILED(mD3DDevice->CreateRootSignature(0, Source.GetBuffer(), Source.GetSize(),
+                                               IID_PPV_ARGS(&pRootSignature)))) {
+        LOG_ERROR(L"Failed to create root signature.\n");
+        return false;
+    }
+
+    OutRootSignature = std::make_unique<RootSignature>(std::move(pRootSignature));
+    return true;
+}
+
+bool Device::CreatePipelineState(D3D12_GRAPHICS_PIPELINE_STATE_DESC& Desc,
+                                 std::unique_ptr<PipelineState>& OutPSO) const {
+    ComPtr<ID3D12PipelineState> pPipelineState;
+    if (FAILED(mD3DDevice->CreateGraphicsPipelineState(&Desc, IID_PPV_ARGS(&pPipelineState)))) {
+        LOG_ERROR(L"Failed to create pipeline state.\n");
+        return false;
+    }
+
+    OutPSO = std::make_unique<PipelineState>(std::move(pPipelineState));
+    return true;
+}
+
 bool Device::CreateSwapChain(HWND hWnd,
                              uint32_t Width,
                              uint32_t Height,
@@ -307,7 +347,7 @@ bool Device::CreateSwapChain(HWND hWnd,
     uint32_t BufferCount = SWAP_CHAIN_BUFFER_COUNT;
 
     // DXGI_FORMAT_R8G8B8A8_UNORM is the most common swap chain format
-    DXGI_FORMAT BufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+    DXGI_FORMAT BufferFormat = DXGI_FORMAT_DEFAULT_RTV;
 
     DXGI_USAGE BufferUsage =
         // Back buffer (target for rendering)
@@ -318,11 +358,11 @@ bool Device::CreateSwapChain(HWND hWnd,
     uint32_t BufferFlags =
         // Create a flip-model swap chain
         DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH |
-        // Skip vsync
+        // Enable tearing capability (actual behavior controlled by Present() call)
         DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
     // Swap chain desc
-    DXGI_SWAP_CHAIN_DESC1 desc;
+    DXGI_SWAP_CHAIN_DESC1 desc{};
     desc.Width = Width;
     desc.Height = Height;
     desc.Format = BufferFormat;
@@ -348,7 +388,7 @@ bool Device::CreateSwapChain(HWND hWnd,
     desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
 
     // Fullscreen desc
-    DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFullscreen;
+    DXGI_SWAP_CHAIN_FULLSCREEN_DESC descFullscreen{};
     descFullscreen.Windowed = true;
 
     // Create the swap chain as IDXGISwapChain1 first

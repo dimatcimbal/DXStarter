@@ -16,14 +16,14 @@ bool SwapChain::BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVect
             return false;
         }
 
-        D3D12_RENDER_TARGET_VIEW_DESC desc;
+        D3D12_RENDER_TARGET_VIEW_DESC desc{};
         desc.Format = mFormat;
         desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
         desc.Texture2D.MipSlice = 0;
         desc.Texture2D.PlaneSlice = 0;
 
         D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-        mDevice.CreateRTV(pResource.Get(), desc, rtvHandle);
+        mDevice.CreateRenderTargetView(pResource.Get(), desc, rtvHandle);
 
         OutVector[i] = std::make_unique<ColorBuffer>(rtvHandle, std::move(pResource));
     }
@@ -31,7 +31,7 @@ bool SwapChain::BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVect
 }
 
 bool SwapChain::Present() const {
-    uint32_t SyncInterval = 1;  // On the next vertical blank
+    uint32_t SyncInterval = 1;  // On the next vertical blank (VSync enabled)
     uint32_t Flags = 0;         // No special flags
     if (FAILED(mDXGISwapChain->Present(SyncInterval, Flags))) {
         LOG_ERROR(L"\t\tFailed to present the swap chain.\n");
