@@ -4,6 +4,7 @@
 
 #include <memory>
 
+#include "DXView.h"
 #include "Graphics/Renderer.h"
 
 // Main window class name for registration
@@ -25,7 +26,7 @@ class MainWindow {
      * @param OutWindow A unique pointer to hold the created MainWindow instance.
      * @return true if the MainWindow was successfully created; false otherwise.
      */
-    static bool Create(Renderer* Renderer, std::unique_ptr<MainWindow>& OutWindow);
+    static bool Create(Device& Device, Renderer& Renderer, std::unique_ptr<MainWindow>& OutWindow);
 
     /**
      * Standard Windows message handler.
@@ -39,8 +40,8 @@ class MainWindow {
      */
     static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-    MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom, Renderer* Renderer)
-        : mHWnd{hWnd}, mHInstance{hInstance}, mWcAtom{wcAtom}, mRenderer{Renderer} {
+    MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom, std::unique_ptr<DXView>&& DXView)
+        : mHWnd(hWnd), mHInstance(hInstance), mWcAtom(wcAtom), mDXView(std::move(DXView)) {
         // Display and update the main window.
         ShowWindow(hWnd, SW_SHOWDEFAULT);
         UpdateWindow(hWnd);
@@ -69,10 +70,10 @@ class MainWindow {
     LRESULT OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     // The main loop
-    int Run();
+    int HandleMessages();
 
    private:
-    Renderer* mRenderer;
+    std::unique_ptr<DXView> mDXView;
 
     HMODULE mHInstance;
     ATOM mWcAtom;

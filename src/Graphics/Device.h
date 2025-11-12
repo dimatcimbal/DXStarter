@@ -12,9 +12,12 @@
 #include "Logging/Logging.h"
 #include "Mesh/Mesh.h"
 #include "Mesh/MeshInstance.h"
+#include "PipelineState.h"
 #include "Resources/ByteBuffer.h"
+#include "RootSignature.h"
 #include "SwapChain.h"
 
+class Bytes;
 // Forward declarations
 class FrameCommandList10;
 
@@ -98,9 +101,14 @@ class Device {
     Device& operator=(const Device& copy) = delete;
 
     // Instance members
-    void CreateRTV(ID3D12Resource2* pResource,
-                   D3D12_RENDER_TARGET_VIEW_DESC& desc,
-                   D3D12_CPU_DESCRIPTOR_HANDLE& CpuHandle) const;
+    bool CreatePipelineState(D3D12_GRAPHICS_PIPELINE_STATE_DESC& Desc,
+                             std::unique_ptr<PipelineState>& OutPSO) const;
+
+    void CreateRenderTargetView(ID3D12Resource2* pResource,
+                                D3D12_RENDER_TARGET_VIEW_DESC& desc,
+                                D3D12_CPU_DESCRIPTOR_HANDLE& CpuHandle) const;
+
+    bool CreateRootSignature(Bytes& Source, std::unique_ptr<RootSignature>& OutRootSignature) const;
 
     bool CreateSwapChain(HWND hWnd,
                          uint32_t Width,
@@ -126,11 +134,14 @@ class Device {
             return false;
         }
         pD3DBuffer->SetName(Name.c_str());
-        OutBuffer = std::make_unique<T>(Type, Size, pD3DBuffer);
+        OutBuffer = std::make_unique<T>(Type, BufferSize, pD3DBuffer);
         return true;
     }
 
-    bool CreateMesh(size_t Size, const void* Data, std::shared_ptr<Mesh>& OutMesh);
+    bool CreateMesh(uint32_t VertexCount,
+                    uint32_t VertexStrideInBytes,
+                    const void* Data,
+                    std::shared_ptr<Mesh>& OutMesh);
 
     bool CreateMeshInstance(std::shared_ptr<Mesh> Model,
                             std::unique_ptr<MeshInstance>& OutModelInstance);

@@ -4,6 +4,8 @@
 
 #include "Graphics/Device.h"
 #include "Graphics/Renderer.h"
+#include "IO/Bytes.h"
+#include "IO/Paths.h"
 #include "Logging/Logging.h"
 #include "Window/MainWindow.h"
 
@@ -17,53 +19,56 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UNREFERENCED_PARAMETER(lpCmdLine);
     UNREFERENCED_PARAMETER(nCmdShow);
 
-    // A simple triangle
-    float vertexData[] = {// A (x,y)
-                          -1.f, -1.f,
-                          // B (x,y)
-                          0.f, 1.f,
-                          // C (x,y)
-                          1.f, -1.f};
+    // A simple 3D triangle
+    float VertexData[] = {// A (x,y,z)
+                          -1.f, -1.f, 0.f,
+                          // B (x,y,z)
+                          0.f, 1.f, 0.f,
+                          // C (x,y,z)
+                          1.f, -1.f, 0.f};
 
     // DX context
-    std::unique_ptr<Device> Device;
-    if (!Device::Create(GRAPHICS_FEATURE_LEVEL, true, true, Device)) {
+    std::unique_ptr<Device> pDevice;
+    if (!Device::Create(GRAPHICS_FEATURE_LEVEL, true, true, pDevice)) {
         LOG_ERROR(L"Failed to create Device.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
     std::shared_ptr<Mesh> Tri;
-    if (!Device->CreateMesh(sizeof(vertexData), vertexData, Tri)) {
+    if (!pDevice->CreateMesh(3,                  // VertexCount
+                             sizeof(float) * 3,  // VertexStrideInBytes (x, y, z)
+                             VertexData,         // VertexData
+                             Tri)) {
         LOG_ERROR(L"Failed to load create mesh.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
     std::unique_ptr<MeshInstance> Model;
-    if (!Device->CreateMeshInstance(Tri, Model)) {
+    if (!pDevice->CreateMeshInstance(Tri, Model)) {
         LOG_ERROR(L"Failed to create MeshInstance.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
     // The Renderer
-    std::unique_ptr<Renderer> Renderer;
-    if (!Renderer::Create(Device.get(), Renderer)) {
+    std::unique_ptr<Renderer> pRenderer;
+    if (!Renderer::Create(*pDevice, pRenderer)) {
         LOG_ERROR(L"Failed to create Renderer.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
-    Renderer->SetModel(std::move(Model));
+    pRenderer->SetModel(std::move(Model));
 
     // The main window.
-    std::unique_ptr<MainWindow> MainWindow;
-    if (!MainWindow::Create(Renderer.get(), MainWindow)) {
+    std::unique_ptr<MainWindow> pMainWindow;
+    if (!MainWindow::Create(*pDevice, *pRenderer, pMainWindow)) {
         LOG_ERROR(L"Failed to create MainWindow.\n");
         ShowErrorMessageBox();
         return -1;
     }
 
-    return MainWindow->Run();
+    return pMainWindow->HandleMessages();
 }

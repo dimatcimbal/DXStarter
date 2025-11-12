@@ -1,27 +1,28 @@
 #pragma once
 
-#include <Windows.h>
-
 #include <memory>
+#include <utility>
 
 #include "Logging/Logging.h"
 #include "Mesh/Mesh.h"
 #include "Mesh/MeshInstance.h"
-#include "Resources/ByteBuffer.h"
-#include "Resources/UploadBuffer.h"
+#include "PipelineState.h"
+#include "RootSignature.h"
 #include "SwapChain.h"
 
 // Forward declarations
 class Device;
 
 /**
- * High-level renderer class. Manages swap chain, render targets, and draw calls.
+ * High-level renderer class. Manages Rendering Pipeline state.
  */
 class Renderer {
    public:
-    static bool Create(Device* Device, std::unique_ptr<Renderer>& OutRenderer);
+    static bool Create(Device& Device, std::unique_ptr<Renderer>& OutRenderer);
 
-    Renderer(Device* Device) : mDevice{Device} {}
+    Renderer(std::unique_ptr<RootSignature>&& RootSignature,
+             std::unique_ptr<PipelineState>&& PipelineState)
+        : mRootSignature(std::move(RootSignature)), mPSO(std::move(PipelineState)) {}
 
     ~Renderer() {
         LOG_INFO(L"\tFreeing Renderer.\n");
@@ -31,68 +32,53 @@ class Renderer {
     Renderer(const Renderer& copy) = delete;
     Renderer& operator=(const Renderer& copy) = delete;
 
-    // Renderer state management methods below.
-    void OnWindowCreate(HWND hWnd);
-    void OnWindowResize(int NewWidth, int NewHeight);
+    // Allow moving
+    Renderer(Renderer&& other) noexcept
+        : mPSO(std::exchange(other.mPSO, nullptr)),
+          mRootSignature(std::exchange(other.mRootSignature, nullptr)),
+          mModel(std::exchange(other.mModel, nullptr)),
+          mViewport(other.mViewport),
+          mScissorRect(other.mScissorRect) {}
 
-    void SetModel(std::unique_ptr<MeshInstance>&& Model) {
-        mModel = std::move(Model);
+    Renderer& operator=(Renderer&& other) noexcept {
+        if (this != &other) {
+            mPSO = std::exchange(other.mPSO, nullptr);
+            mRootSignature = std::exchange(other.mRootSignature, nullptr);
+            mModel = std::exchange(other.mModel, nullptr);
+            mViewport = other.mViewport;
+            mScissorRect = other.mScissorRect;
+        }
+        return *this;
     }
 
-    /*
-     * Frame update function
-     */
-    bool Update();
+    // Instance members
 
-    void Stop() {
-        mIsRunning = false;
-    }
-
-   private:
     /**
      * Draws a frame.
      * @return
      */
-    bool Draw() const;
+    bool Draw(CommandList10& Cmdl) const;
 
     /**
      * Main loop tick function.
      * @param deltaTime Time elapsed since last tick in seconds.
      * @return True if the renderer should continue running, false to exit.
      */
-    bool Tick(float deltaTime) const;
+    bool Update(CommandList10& Cmdl, float deltaTime) const;
 
-    bool FlushAll() const;
+    void Resize(uint32_t Width, uint32_t Height);
+
+    // Getters/Setters
+
+    void SetModel(std::unique_ptr<MeshInstance>&& Model) {
+        mModel = std::move(Model);
+    }
 
    private:
-    // Not owned by this class
-    Device* mDevice;
+    std::unique_ptr<PipelineState> mPSO;
+    std::unique_ptr<RootSignature> mRootSignature;
     std::unique_ptr<MeshInstance> mModel;
 
-    // Owned resource
-    std::unique_ptr<SwapChain> mSwapChain;
-    std::unique_ptr<UploadBuffer> mUploadBuffer;
-    std::unique_ptr<ByteBuffer> mVertexBuffer;
-
-    // Cached window dimensions
-    uint32_t mWidth{0};
-    uint32_t mHeight{0};
-
-    // Main loop control
-    bool mIsRunning{true};
-
-    // OnCreate args
-    HWND mGraphicsHwnd{nullptr};
-    bool mIsCreated{false};
-
-    // OnResize args
-    bool mIsMinimized{false};
-    bool mIsResized{false};
-    uint32_t mNewWidth{0};
-    uint32_t mNewHeight{0};
-
-    // Timing variables for delta time calculation
-    LARGE_INTEGER mLastFrameTime{};
-    LARGE_INTEGER mFrequency{};
-    bool mFirstFrame{true};
+    D3D12_VIEWPORT mViewport;
+    RECT mScissorRect;
 };

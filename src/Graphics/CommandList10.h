@@ -19,12 +19,12 @@ class CommandList10 {
     CommandList10() = default;
 
     CommandList10(CommandQueue* CommandQueue, ID3D12GraphicsCommandList10* CommandList)
-        : mCommandQueue{CommandQueue}, mCommandList{CommandList} {}
+        : mCommandQueue{CommandQueue}, mD3DCommandList{CommandList} {}
 
     ~CommandList10() {
         // Execute and wait on current command list if valid
-        if (mCommandQueue && mCommandList) {
-            if (!mCommandQueue->ExecuteCommandList(mCommandList)) {
+        if (mCommandQueue && mD3DCommandList) {
+            if (!mCommandQueue->ExecuteCommandList(mD3DCommandList)) {
                 LOG_ERROR(L"\tFailed to execute command list.\n");
             }
             if (!mCommandQueue->WaitForIdle()) {
@@ -40,14 +40,14 @@ class CommandList10 {
     // Move constructor
     CommandList10(CommandList10&& other) noexcept
         : mCommandQueue{std::exchange(other.mCommandQueue, nullptr)},
-          mCommandList{std::exchange(other.mCommandList, nullptr)} {}
+          mD3DCommandList{std::exchange(other.mD3DCommandList, nullptr)} {}
 
     // Move assignment operator
     CommandList10& operator=(CommandList10&& other) noexcept {
         if (this != &other) {
             // The command list doesn't own these resources, so just move the pointers
             mCommandQueue = std::exchange(other.mCommandQueue, nullptr);
-            mCommandList = std::exchange(other.mCommandList, nullptr);
+            mD3DCommandList = std::exchange(other.mD3DCommandList, nullptr);
         }
         return *this;
     }
@@ -57,12 +57,12 @@ class CommandList10 {
                           size_t FromOffset,
                           const Resource& To,
                           size_t NumBytes) const {
-        mCommandList->CopyBufferRegion(To.GetResource(), 0, From.GetResource(), FromOffset,
-                                       NumBytes);
+        mD3DCommandList->CopyBufferRegion(To.GetResource(), 0, From.GetResource(), FromOffset,
+                                          NumBytes);
     }
 
     void ClearTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV, const float ColorRGBA[4]) const {
-        mCommandList->ClearRenderTargetView(RTV, ColorRGBA, 0, nullptr);
+        mD3DCommandList->ClearRenderTargetView(RTV, ColorRGBA, 0, nullptr);
     }
 
     void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV) const {
@@ -70,8 +70,31 @@ class CommandList10 {
     }
 
     void SetRenderTargets(uint32_t count, D3D12_CPU_DESCRIPTOR_HANDLE RTVs[]) const {
-        mCommandList->OMSetRenderTargets(count, RTVs, FALSE, nullptr);
+        mD3DCommandList->OMSetRenderTargets(count, RTVs, FALSE, nullptr);
     }
+
+    void SetVertexBuffer(uint32_t Slot, const D3D12_VERTEX_BUFFER_VIEW& VBView) const {
+        mD3DCommandList->IASetVertexBuffers(Slot, 1, &VBView);
+    }
+
+    void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology) const {
+        mD3DCommandList->IASetPrimitiveTopology(Topology);
+    }
+
+    void DrawInstanced(uint32_t NumVertexPerInstance, uint32_t StartVertexOffset) const {
+        DrawInstanced(NumVertexPerInstance, 1, StartVertexOffset, 0);
+    }
+
+    void DrawInstanced(uint32_t NumVertexPerInstance,
+                       uint32_t NumInstance,
+                       uint32_t StartVertexOffset,
+                       uint32_t StartInstanceOffset) const {
+        FlushResourceBarriers();
+        mD3DCommandList->DrawInstanced(NumVertexPerInstance, NumInstance, StartVertexOffset,
+                                       StartInstanceOffset);
+    }
+
+    void FlushResourceBarriers() const {}
 
     /** Transition a resource from one state to another.
      *  This is a template method that accepts any type derived from Resource.
@@ -81,7 +104,7 @@ class CommandList10 {
         requires std::is_base_of_v<Resource, T>
     {
         // Prepare a resource barrier for transition.
-        D3D12_RESOURCE_BARRIER barrier;
+        D3D12_RESOURCE_BARRIER barrier{};
 
         // Configure this as a transition barrier.
         barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -97,16 +120,16 @@ class CommandList10 {
         barrier.Transition.StateBefore = Before;
         barrier.Transition.StateAfter = After;
 
-        mCommandList->ResourceBarrier(1, &barrier);
+        mD3DCommandList->ResourceBarrier(1, &barrier);
     }
 
     ID3D12GraphicsCommandList10* operator->() const {
-        return mCommandList;
+        return mD3DCommandList;
     }
 
    protected:
     CommandQueue* mCommandQueue{nullptr};
-    ID3D12GraphicsCommandList10* mCommandList{nullptr};
+    ID3D12GraphicsCommandList10* mD3DCommandList{nullptr};
 };
 
 /**

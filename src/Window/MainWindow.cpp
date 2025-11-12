@@ -1,9 +1,11 @@
 ﻿#include "MainWindow.h"
 
-#include "Graphics/Renderer.h"
+#include "Graphics/Device.h"
 #include "Logging/Logging.h"
 
-bool MainWindow::Create(Renderer* Renderer, std::unique_ptr<MainWindow>& OutWindow) {
+bool MainWindow::Create(Device& Device,
+                        Renderer& Renderer,
+                        std::unique_ptr<MainWindow>& OutWindow) {
     // Handler to the module owning the window
     HMODULE hInstance = GetModuleHandle(nullptr);
 
@@ -36,11 +38,12 @@ bool MainWindow::Create(Renderer* Renderer, std::unique_ptr<MainWindow>& OutWind
 
     // Creates a WindowState which decouples immediate window message processing from the graphics
     // handling
+    std::unique_ptr<DXView> pDXView = std::make_unique<DXView>(Device, Renderer);
 
     // Create a local MainWindow instance to pass as lpParam,
     // passing nullptr as hWnd, we'll set it after CreateWindowEx
     std::unique_ptr<MainWindow> pWindow =
-        std::make_unique<MainWindow>(nullptr, hInstance, wcAtom, Renderer);
+        std::make_unique<MainWindow>(nullptr, hInstance, wcAtom, std::move(pDXView));
 
     HWND hWnd = CreateWindowEx(
         // Extended styles
@@ -116,13 +119,13 @@ LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPA
 LRESULT MainWindow::OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
     switch (uMsg) {
         case WM_CREATE: {
-            mRenderer->OnWindowCreate(hWnd);
+            mDXView->OnWindowCreate(hWnd);
             return 0;
         }
         case WM_SIZE: {
             int width = LOWORD(lParam);
             int height = HIWORD(lParam);
-            mRenderer->OnWindowResize(width, height);
+            mDXView->OnWindowResize(width, height);
             return 0;
         }
         case WM_CLOSE: {
@@ -141,7 +144,7 @@ LRESULT MainWindow::OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
     }
 }
 
-int MainWindow::Run() {
+int MainWindow::HandleMessages() {
     MSG msg{};
 
     // The main application loop
@@ -152,13 +155,13 @@ int MainWindow::Run() {
             DispatchMessage(&msg);
 
             if (msg.message == WM_QUIT) {
-                mRenderer->Stop();
+                mDXView->Stop();
                 break;
             }
         }
 
         // Update and render the app state
-    } while (mRenderer->Update());
+    } while (mDXView->Update());
 
     // Exit
     LOG_INFO(L"Exiting application.\n");
