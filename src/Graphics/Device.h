@@ -2,24 +2,21 @@
 
 #include <memory>
 
-#include "ByteUtil.h"
 #include "CommandAllocator.h"
 #include "CommandQueue.h"
 #include "DebugLayer.h"
 #include "DescriptorHeap.h"
+#include "IO/Bytes.h"
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
+#include "Material/Material.h"
+#include "Material/PipelineState.h"
+#include "Material/RootSignature.h"
 #include "Mesh/Mesh.h"
 #include "Mesh/MeshInstance.h"
-#include "PipelineState.h"
-#include "Resources/ByteBuffer.h"
-#include "RootSignature.h"
+#include "Resource/ByteBuffer.h"
 #include "SwapChain.h"
-
-class Bytes;
-// Forward declarations
-class FrameCommandList10;
 
 // Graphics configs below
 constexpr D3D_FEATURE_LEVEL GRAPHICS_FEATURE_LEVEL = D3D_FEATURE_LEVEL_12_0;
@@ -30,7 +27,10 @@ constexpr uint32_t RTV_DESCRIPTOR_COUNT{256};
 // count is 2 to accommodate back buffer (one is presenting while the other is a back buffer)
 constexpr uint32_t SWAP_CHAIN_BUFFER_COUNT{2};
 
+// Forward declarations
+class Bytes;
 class CommandList10;
+class FrameCommandList10;
 
 /**
  * Device class encapsulates the D3D12 device and related resources.
@@ -122,7 +122,7 @@ class Device {
                       std::unique_ptr<T>& OutBuffer)
         requires std::is_base_of_v<ByteBuffer, T>
     {
-        size_t BufferSize = ByteUtil::AlignTo256Bytes(Size);
+        size_t BufferSize = Bytes::AlignTo256Bytes(Size);
 
         ComPtr<ID3D12Resource2> pD3DBuffer;
         CD3DX12_HEAP_PROPERTIES heapProps{Type};
@@ -144,6 +144,7 @@ class Device {
                     std::shared_ptr<Mesh>& OutMesh);
 
     bool CreateMeshInstance(std::shared_ptr<Mesh> Model,
+                            std::shared_ptr<Material> Material,
                             std::unique_ptr<MeshInstance>& OutModelInstance);
 
     bool GetCommandList(CommandList10& OutCommandList) const;

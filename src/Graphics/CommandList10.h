@@ -6,7 +6,7 @@
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
-#include "Resources/Resource.h"
+#include "Resource/Resource.h"
 #include "SwapChain.h"
 
 /**
@@ -21,7 +21,7 @@ class CommandList10 {
     CommandList10(CommandQueue* CommandQueue, ID3D12GraphicsCommandList10* CommandList)
         : mCommandQueue{CommandQueue}, mD3DCommandList{CommandList} {}
 
-    ~CommandList10() {
+    virtual ~CommandList10() {
         // Execute and wait on current command list if valid
         if (mCommandQueue && mD3DCommandList) {
             if (!mCommandQueue->ExecuteCommandList(mD3DCommandList)) {
@@ -59,10 +59,6 @@ class CommandList10 {
                           size_t NumBytes) const {
         mD3DCommandList->CopyBufferRegion(To.GetResource(), 0, From.GetResource(), FromOffset,
                                           NumBytes);
-    }
-
-    void ClearTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV, const float ColorRGBA[4]) const {
-        mD3DCommandList->ClearRenderTargetView(RTV, ColorRGBA, 0, nullptr);
     }
 
     void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV) const {
@@ -138,7 +134,7 @@ class CommandList10 {
  * command list is executed and the command queue is waited on when it goes out of scope.
  */
 class FrameCommandList10 : public CommandList10 {
-    friend Device;
+    friend class Device;
 
    public:
     FrameCommandList10() = default;
@@ -177,6 +173,16 @@ class FrameCommandList10 : public CommandList10 {
             CommandList10::operator=(std::move(other));
         }
         return *this;
+    }
+
+    void ClearRenderTarget(const float* ClearColorRGBA) const {
+        // The SwapChain should be set
+        if (!mSwapChain) {
+            LOG_ERROR(L"\tClearRenderTarget: mSwapChain is nullptr.");
+            return;
+        }
+        D3D12_CPU_DESCRIPTOR_HANDLE RenderTarget = mSwapChain->GetCurrentBackBuffer().GetRTV();
+        mD3DCommandList->ClearRenderTargetView(RenderTarget, ClearColorRGBA, 0, nullptr);
     }
 
    private:

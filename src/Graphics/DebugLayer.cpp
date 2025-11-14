@@ -1,7 +1,5 @@
 #include "DebugLayer.h"
 
-#include "Includes/ComIncl.h"
-#include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
 
 bool DebugLayer::Create(std::unique_ptr<DebugLayer>& OutDebugLayer) {

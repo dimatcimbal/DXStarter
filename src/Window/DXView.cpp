@@ -46,12 +46,12 @@ bool DXView::Update() {
     {  // Scene update
         CommandList10 Cmdl;
         if (!mDevice.GetCommandList(Cmdl)) {
-            LOG_ERROR("Failed to get command list for model update.\n");
+            LOG_ERROR(L"Failed to get command list for model update.\n");
             return false;
         }
 
         if (!mRenderer.Update(Cmdl, DeltaTime)) {
-            LOG_ERROR("Failed to update the scene.\n");
+            LOG_ERROR(L"Failed to update the scene.\n");
             return false;
         }
     }

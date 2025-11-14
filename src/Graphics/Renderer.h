@@ -1,28 +1,26 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <utility>
 
+#include "CommandList10.h"
+#include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
-#include "Mesh/Mesh.h"
 #include "Mesh/MeshInstance.h"
-#include "PipelineState.h"
-#include "RootSignature.h"
-#include "SwapChain.h"
 
 // Forward declarations
 class Device;
 
 /**
- * High-level renderer class. Manages Rendering Pipeline state.
+ * High-level renderer class. Manages viewport, scissor rect, and clear color.
+ * Coordinates rendering of mesh instances.
  */
 class Renderer {
    public:
-    static bool Create(Device& Device, std::unique_ptr<Renderer>& OutRenderer);
+    static bool Create(std::unique_ptr<Renderer>& OutRenderer);
 
-    Renderer(std::unique_ptr<RootSignature>&& RootSignature,
-             std::unique_ptr<PipelineState>&& PipelineState)
-        : mRootSignature(std::move(RootSignature)), mPSO(std::move(PipelineState)) {}
+    Renderer() : mClearColorRGBA{0.f, 0.f, 0.f, 1.f}, mViewport{}, mScissorRect{} {}
 
     ~Renderer() {
         LOG_INFO(L"\tFreeing Renderer.\n");
@@ -34,19 +32,18 @@ class Renderer {
 
     // Allow moving
     Renderer(Renderer&& other) noexcept
-        : mPSO(std::exchange(other.mPSO, nullptr)),
-          mRootSignature(std::exchange(other.mRootSignature, nullptr)),
-          mModel(std::exchange(other.mModel, nullptr)),
+        : mModel(std::exchange(other.mModel, nullptr)),
           mViewport(other.mViewport),
-          mScissorRect(other.mScissorRect) {}
+          mScissorRect(other.mScissorRect) {
+        std::ranges::copy(other.mClearColorRGBA, mClearColorRGBA);
+    }
 
     Renderer& operator=(Renderer&& other) noexcept {
         if (this != &other) {
-            mPSO = std::exchange(other.mPSO, nullptr);
-            mRootSignature = std::exchange(other.mRootSignature, nullptr);
             mModel = std::exchange(other.mModel, nullptr);
             mViewport = other.mViewport;
             mScissorRect = other.mScissorRect;
+            std::ranges::copy(other.mClearColorRGBA, mClearColorRGBA);
         }
         return *this;
     }
@@ -57,7 +54,7 @@ class Renderer {
      * Draws a frame.
      * @return
      */
-    bool Draw(CommandList10& Cmdl) const;
+    bool Draw(FrameCommandList10& Cmdl) const;
 
     /**
      * Main loop tick function.
@@ -69,15 +66,20 @@ class Renderer {
     void Resize(uint32_t Width, uint32_t Height);
 
     // Getters/Setters
+    void SetClearColorRGBA(float r, float g, float b, float a) {
+        mClearColorRGBA[0] = r;
+        mClearColorRGBA[1] = g;
+        mClearColorRGBA[2] = b;
+        mClearColorRGBA[3] = a;
+    }
 
     void SetModel(std::unique_ptr<MeshInstance>&& Model) {
         mModel = std::move(Model);
     }
 
    private:
-    std::unique_ptr<PipelineState> mPSO;
-    std::unique_ptr<RootSignature> mRootSignature;
     std::unique_ptr<MeshInstance> mModel;
+    float mClearColorRGBA[4];
 
     D3D12_VIEWPORT mViewport;
     RECT mScissorRect;

@@ -1,8 +1,11 @@
 ﻿#include <Windows.h>
 
+#include <filesystem>
 #include <memory>
 
 #include "Graphics/Device.h"
+#include "Graphics/Material/Material.h"
+#include "Graphics/Material/MaterialBuilder.h"
 #include "Graphics/Renderer.h"
 #include "IO/Bytes.h"
 #include "IO/Paths.h"
@@ -27,7 +30,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                           // C (x,y,z)
                           1.f, -1.f, 0.f};
 
-    // DX context
+    // DX device
     std::unique_ptr<Device> pDevice;
     if (!Device::Create(GRAPHICS_FEATURE_LEVEL, true, true, pDevice)) {
         LOG_ERROR(L"Failed to create Device.\n");
@@ -35,6 +38,49 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
+    // Load shader bytecode
+    std::filesystem::path MaterialDir;
+    if (!Paths::GetMaterialsDirAbsPath(MaterialDir)) {
+        LOG_ERROR(L"Failed to get the path to the compiled shader directory.");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    std::unique_ptr<Bytes> pVertexShaderBytecode;
+    if (!Bytes::Load(MaterialDir / "Default.vertx.cso", pVertexShaderBytecode)) {
+        LOG_ERROR(L"Failed to load vertex shader.");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    std::unique_ptr<Bytes> pPixelShaderBytecode;
+    if (!Bytes::Load(MaterialDir / "Default.pixel.cso", pPixelShaderBytecode)) {
+        LOG_ERROR(L"Failed to load pixel shader.");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    std::unique_ptr<Bytes> pRootSigBytecode;
+    if (!Bytes::Load(MaterialDir / "Default.rsign.cso", pRootSigBytecode)) {
+        LOG_ERROR(L"Failed to load root signature.");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    // Create Material using MaterialBuilder
+    MaterialBuilder builder;
+    builder.SetVertexShaderBytecode(std::move(pVertexShaderBytecode))
+           .SetPixelShaderBytecode(std::move(pPixelShaderBytecode))
+           .SetRootSigBytecode(std::move(pRootSigBytecode));
+    
+    std::shared_ptr<Material> pMaterial;
+    if (!builder.CreateMaterial(*pDevice, pMaterial)) {
+        LOG_ERROR(L"Failed to create Material.\n");
+        ShowErrorMessageBox();
+        return -1;
+    }
+
+    // Create Geometry
     std::shared_ptr<Mesh> Tri;
     if (!pDevice->CreateMesh(3,                  // VertexCount
                              sizeof(float) * 3,  // VertexStrideInBytes (x, y, z)
@@ -45,8 +91,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
+    // Combine into a ModelInstance
     std::unique_ptr<MeshInstance> Model;
-    if (!pDevice->CreateMeshInstance(Tri, Model)) {
+    if (!pDevice->CreateMeshInstance(Tri, pMaterial, Model)) {
         LOG_ERROR(L"Failed to create MeshInstance.\n");
         ShowErrorMessageBox();
         return -1;
@@ -54,7 +101,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // The Renderer
     std::unique_ptr<Renderer> pRenderer;
-    if (!Renderer::Create(*pDevice, pRenderer)) {
+    if (!Renderer::Create(pRenderer)) {
         LOG_ERROR(L"Failed to create Renderer.\n");
         ShowErrorMessageBox();
         return -1;

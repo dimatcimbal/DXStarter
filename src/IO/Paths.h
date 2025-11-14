@@ -4,5 +4,5 @@
 
 class Paths {
    public:
-    static bool GetCompiledShaderDirAbsPath(std::filesystem::path& OutPath);
+    static bool GetMaterialsDirAbsPath(std::filesystem::path& OutPath);
 };

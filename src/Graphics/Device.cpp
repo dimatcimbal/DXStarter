@@ -4,11 +4,10 @@
 
 #include "CommandList10.h"
 #include "IO/Bytes.h"
-#include "Includes/ComIncl.h"
 #include "Logging/Logging.h"
+#include "Material/RootSignature.h"
 #include "Mesh/MeshInstance.h"
-#include "Resources/UploadBuffer.h"
-#include "RootSignature.h"
+#include "Resource/UploadBuffer.h"
 
 using Microsoft::WRL::ComPtr;
 
@@ -238,7 +237,7 @@ bool Device::CreateMesh(uint32_t VertexCount,
     std::unique_ptr<UploadBuffer> MeshGeometryUploadBuffer;
     if (!CreateBuffer(L"MeshGeometryUploadBuffer", D3D12_HEAP_TYPE_UPLOAD, DataSizeInBytes,
                       MeshGeometryUploadBuffer)) {
-        LOG_ERROR("Failed to create geometry upload buffer.\n");
+        LOG_ERROR(L"Failed to create geometry upload buffer.\n");
         return false;
     }
 
@@ -292,6 +291,7 @@ bool Device::CreateMesh(uint32_t VertexCount,
 }
 
 bool Device::CreateMeshInstance(std::shared_ptr<Mesh> Mesh,
+                                std::shared_ptr<Material> Material,
                                 std::unique_ptr<MeshInstance>& OutModelInstance) {
     size_t VertexDataSize = Mesh->GetVertexBufferSize();
 
@@ -310,8 +310,9 @@ bool Device::CreateMeshInstance(std::shared_ptr<Mesh> Mesh,
         return false;
     }
 
-    OutModelInstance = std::make_unique<MeshInstance>(
-        std::move(Mesh), std::move(MeshConstCpuBuffer), std::move(MeshConstGpuBuffer));
+    OutModelInstance = std::make_unique<MeshInstance>(std::move(Mesh), std::move(Material),
+                                                      std::move(MeshConstCpuBuffer),
+                                                      std::move(MeshConstGpuBuffer));
     return true;
 }
 
