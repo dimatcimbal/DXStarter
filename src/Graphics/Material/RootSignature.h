@@ -9,7 +9,7 @@ class RootSignature {
         : mD3DRootSignature(std::move(RootSignature)) {}
 
     ID3D12RootSignature* GetD3DRootSignature() const {
-        return mD3DRootSignature.Get();
+        return mD3DRootSignature ? mD3DRootSignature.Get() : nullptr;
     }
 
    private:

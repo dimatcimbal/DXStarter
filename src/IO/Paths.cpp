@@ -2,11 +2,9 @@
 
 #include <Windows.h>
 
-#include <filesystem>
-
 #include "Logging/Logging.h"
 
-bool Paths::GetCompiledShaderDirAbsPath(std::filesystem::path& OutPath) {
+bool Paths::GetMaterialsDirAbsPath(std::filesystem::path& OutPath) {
     static std::filesystem::path compiledShaderDir;
     if (compiledShaderDir.empty()) {
         // Get abs path to the exec

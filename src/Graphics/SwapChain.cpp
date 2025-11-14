@@ -3,8 +3,6 @@
 #include "CommandList10.h"
 #include "CommandQueue.h"
 #include "Device.h"
-#include "Includes/ComIncl.h"
-#include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
 
 bool SwapChain::BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVector) const {
@@ -16,16 +14,16 @@ bool SwapChain::BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVect
             return false;
         }
 
-        D3D12_RENDER_TARGET_VIEW_DESC desc{};
-        desc.Format = mFormat;
-        desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-        desc.Texture2D.MipSlice = 0;
-        desc.Texture2D.PlaneSlice = 0;
+        D3D12_RENDER_TARGET_VIEW_DESC Desc{};
+        Desc.Format = mFormat;
+        Desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+        Desc.Texture2D.MipSlice = 0;
+        Desc.Texture2D.PlaneSlice = 0;
 
-        D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-        mDevice.CreateRenderTargetView(pResource.Get(), desc, rtvHandle);
+        D3D12_CPU_DESCRIPTOR_HANDLE RTVHandle;
+        mDevice.CreateRenderTargetView(pResource.Get(), Desc, RTVHandle);
 
-        OutVector[i] = std::make_unique<ColorBuffer>(rtvHandle, std::move(pResource));
+        OutVector[i] = std::make_unique<ColorBuffer>(RTVHandle, std::move(pResource));
     }
     return true;
 }
@@ -84,14 +82,10 @@ void SwapChain::BeginFrame(FrameCommandList10& Cmdl) {
     Cmdl.TransitionResource(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_PRESENT,
                             D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-    // TODO: Remove this
-    float ClearColorRGBA[] = {0.4f, 0.6f, 0.9f, 1.0f};
-    Cmdl.ClearTarget(GetCurrentBackBuffer().GetRTV(), ClearColorRGBA);
-
     Cmdl.SetRenderTarget(GetCurrentBackBuffer().GetRTV());
 }
 
-void SwapChain::EndFrame(FrameCommandList10& Cmd) {
+void SwapChain::EndFrame(FrameCommandList10& Cmd) const {
     Cmd.TransitionResource(GetCurrentBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET,
                            D3D12_RESOURCE_STATE_PRESENT);
 }

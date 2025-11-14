@@ -134,6 +134,26 @@ Installs vcpkg dependencies specified in `vcpkg.json`.
 - **Language**: C++ with Windows-specific code
 - **Build Output**: Generated files and executables go to `build/` directory
 
+### Housekeeper Submodule Management
+
+The `Housekeeper/` directory is a git submodule. The actual Housekeeper repository is located at `C:\Users\dtcimbal\code\Housekeeper`.
+
+**Workflow for updating Housekeeper:**
+1. Make changes in the actual repository: `C:\Users\dtcimbal\code\Housekeeper`
+2. Commit and push changes to the Housekeeper repository
+3. Update the submodule in DXStarter:
+   ```powershell
+   cd Housekeeper
+   git fetch origin
+   git checkout main  # or the branch/commit you want
+   git pull
+   cd ..
+   git add Housekeeper  # Stage the submodule update
+   ```
+4. The submodule reference will be updated in DXStarter's commit
+
+**Note**: Always work in the actual Housekeeper repository, not the submodule directory, when making changes to the build script.
+
 ### DEVLOG.md Structure and Format
 
 The `DEVLOG.md` file serves as a changelog documenting all pull requests and significant changes to the project. It follows a consistent structure:

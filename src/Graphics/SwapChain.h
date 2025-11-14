@@ -5,7 +5,7 @@
 
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
-#include "Resources/ColorBuffer.h"
+#include "Resource/ColorBuffer.h"
 
 // Forward declarations
 class Device;
@@ -70,7 +70,7 @@ class SwapChain {
      * Transition the current back buffer to a present state at the end of the frame.
      * @param Cmd Command list to record the resource barrier commands into.
      */
-    void EndFrame(FrameCommandList10& Cmd);
+    void EndFrame(FrameCommandList10& Cmd) const;
 
    private:
     /**

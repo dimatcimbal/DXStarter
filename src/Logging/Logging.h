@@ -6,7 +6,6 @@
 #include <Windows.h>  // required for OutputDebugString
 
 #include <cstdio>  // required for swprintf_s
-#include <string>  // required for std::wstring
 
 #ifdef _DEBUG
 // Buffer size for logging macros

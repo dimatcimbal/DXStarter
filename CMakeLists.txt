@@ -69,7 +69,7 @@ find_program(DXC_EXE dxc
 
 # Collect all shaders to compile
 file(GLOB_RECURSE HLSL_SHADERS
-    "${CMAKE_SOURCE_DIR}/Resources/Shaders/*.hlsl"
+    "${CMAKE_SOURCE_DIR}/Materials/Shaders/*.hlsl"
 )
 
 # Per-config shader output directory
