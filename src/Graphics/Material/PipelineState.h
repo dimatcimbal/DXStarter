@@ -26,7 +26,7 @@ class PipelineState {
     }
 
     ID3D12PipelineState* GetD3DPipelineState() const {
-        return mPipelineState.Get();
+        return mPipelineState ? mPipelineState.Get() : nullptr;
     }
 
    private:

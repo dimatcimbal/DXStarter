@@ -19,7 +19,7 @@ bool UploadBuffer::UploadBytes(size_t Size, const void* data) {
 
 bool BufferRange::UploadBytes(size_t size, const void* data) const {
     if (size > mSize) {
-        LOG_ERROR("\t\tData size (%zu) exceeds upload buffer size (%zu).\n", size, mSize);
+        LOG_ERROR(L"\t\tData size (%zu) exceeds upload buffer size (%zu).\n", size, mSize);
         return false;
     }
 

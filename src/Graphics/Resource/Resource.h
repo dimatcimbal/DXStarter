@@ -10,6 +10,8 @@ class Resource {
           mGpuVirtualAddress(pD3DResource->GetGPUVirtualAddress()),
           mD3DResource{std::move(pD3DResource)} {}
 
+    virtual ~Resource() = default;
+
     // Prohibit copying
     Resource(const Resource& other) = delete;
     Resource& operator=(const Resource& other) = delete;

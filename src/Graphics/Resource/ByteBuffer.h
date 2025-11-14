@@ -9,6 +9,8 @@ class ByteBuffer : public Resource {
                Microsoft::WRL::ComPtr<ID3D12Resource2> pResource)
         : Resource(std::move(pResource)), mType(Type), mSize(_265byteAlignedBufferSize) {}
 
+    virtual ~ByteBuffer() = default;
+
     // Prohibit copying
     ByteBuffer(const ByteBuffer& other) = delete;
     ByteBuffer& operator=(const ByteBuffer& other) = delete;

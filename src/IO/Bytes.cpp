@@ -4,7 +4,7 @@
 
 #include "Logging/Logging.h"
 
-bool Bytes::Load(std::filesystem::path FilePath, std::unique_ptr<Bytes>& OutFile) {
+bool Bytes::Load(std::filesystem::path FilePath, std::unique_ptr<Bytes>& OutBuffer) {
     std::ifstream file(FilePath, std::ios::in | std::ios::binary);
 
     if (!file.is_open()) {
@@ -43,6 +43,6 @@ bool Bytes::Load(std::filesystem::path FilePath, std::unique_ptr<Bytes>& OutFile
         return false;
     }
 
-    OutFile = std::unique_ptr<Bytes>(new Bytes(fileSize, std::move(buffer)));
+    OutBuffer = std::unique_ptr<Bytes>(new Bytes(fileSize, std::move(buffer)));
     return true;
 }
