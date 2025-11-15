@@ -1,4 +1,43 @@
-# Changelog
+# Devlog
+
+## [#21 Material class](https://github.com/dimatcimbal/DXStarter/pull/21)
+
+Introduced a Material class to handle pipeline state and root signature, enabling material sharing across multiple mesh instances.
+
+1. **Material Class**:
+   * Created `Material` class that owns both `RootSignature` and `PipelineState` objects.
+   * Implemented `Material::Create()` factory method that loads shader bytecode, creates root signature and pipeline state, and configures the complete graphics pipeline.
+   * Material uses `std::shared_ptr` for sharing across multiple mesh instances.
+
+2. **File Organization Refactoring**:
+   * Moved `RootSignature.h` and `PipelineState.h` from `Graphics/` to `Graphics/Material/` directory.
+   * Renamed `Graphics/Resources/` directory to `Graphics/Resource/` (singular) for consistency.
+   * Moved mesh-related files from `src/Mesh/` to `src/Graphics/Mesh/` directory for better organization within the graphics module.
+   * Deleted `ByteUtil.h` and moved `AlignTo256Bytes()` static method to `Bytes.h` class.
+   * Refactored project layout to separate framework code from examples.
+   * Framework sources remain in `src/` directory and are compiled into `DXFramework` static library.
+   * Examples are organized in `Examples/` directory, each with its own `Src/` or `src/` subdirectory containing `Main.cpp` and example-specific code.
+   * Each example can have its own shaders in `Examples/<ExampleName>/Materials/` directory at the root of each example.
+   * Updated `CMakeLists.txt` to automatically discover and build all examples as separate executables, each linking to the framework library.
+   * Shaders are compiled per-example to `build/<Config>/<ExampleName>/Materials/` directory (next to each executable) to match runtime shader loading expectations.
+
+3. **Renderer Simplification**:
+   * Removed pipeline state creation logic from `Renderer` (moved to `Material::Create()`).
+   * Renderer now focuses solely on managing viewport, scissor rect, and clear color.
+
+4. **MeshInstance Material Integration**:
+   * Updated `MeshInstance` constructor to accept `std::shared_ptr<Material>` parameter.
+   * Implemented `MeshInstance::Draw()` to set root signature and pipeline state from the material before drawing.
+   * Updated `Device::CreateMeshInstance()` to accept and pass Material to mesh instances.
+
+5. **SwapChain Updates**:
+   * Removed hardcoded clear color from `SwapChain::BeginFrame()` (now handled by `Renderer::Draw()`).
+   * Improved variable naming consistency (e.g., `desc` → `Desc`, `rtvHandle` → `RTVHandle`).
+
+6. **Application Integration**:
+   * Updated `Main.cpp` to create Material before creating mesh instance.
+   * Material creation now happens independently of mesh creation, allowing material reuse.
+   * Updated mesh instance creation to pass Material parameter.
 
 ## [#20 Pipeline State Setup](https://github.com/dimatcimbal/DXStarter/pull/20)
 

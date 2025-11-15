@@ -1,7 +1,7 @@
 #pragma once
 #include <utility>
 
-#include "Graphics/Resources/ByteBuffer.h"
+#include "Graphics/Resource/ByteBuffer.h"
 #include "Includes/GraphicsIncl.h"
 
 class Mesh {

@@ -12,10 +12,15 @@ bool MeshInstance::Update(CommandList10& Cmdl, float DeltaTime) {
 }
 
 bool MeshInstance::Draw(CommandList10& Cmdl) const {
-    // TODO:
-    // 1. Set up vertex buffer view
-    // 2. Issue draw calls using Cmdl
+    if (!mMaterial) {
+        return false;
+    }
 
+    // Set the pipeline state from material
+    Cmdl->SetGraphicsRootSignature(mMaterial->GetD3DRootSignature());
+    Cmdl->SetPipelineState(mMaterial->GetD3DPipelineState());
+
+    // Set up vertex buffer view
     Cmdl.SetVertexBuffer(0, mMesh->GetVertexBufferView());
     Cmdl.SetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     Cmdl.DrawInstanced(mMesh->GetVertexCount(), 0);
