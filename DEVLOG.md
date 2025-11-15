@@ -12,10 +12,14 @@ Introduced a Material class to handle pipeline state and root signature, enablin
 2. **File Organization Refactoring**:
    * Moved `RootSignature.h` and `PipelineState.h` from `Graphics/` to `Graphics/Material/` directory.
    * Renamed `Graphics/Resources/` directory to `Graphics/Resource/` (singular) for consistency.
-   * Moved shader files from `Resources/Shaders/` to `Materials/Shaders/` directory to align with material organization.
    * Moved mesh-related files from `src/Mesh/` to `src/Graphics/Mesh/` directory for better organization within the graphics module.
-   * Updated `CMakeLists.txt` to reference the new `Materials/Shaders/` path for shader compilation.
    * Deleted `ByteUtil.h` and moved `AlignTo256Bytes()` static method to `Bytes.h` class.
+   * Refactored project layout to separate framework code from examples.
+   * Framework sources remain in `src/` directory and are compiled into `DXFramework` static library.
+   * Examples are organized in `Examples/` directory, each with its own `Src/` or `src/` subdirectory containing `Main.cpp` and example-specific code.
+   * Each example can have its own shaders in `Examples/<ExampleName>/Materials/` directory at the root of each example.
+   * Updated `CMakeLists.txt` to automatically discover and build all examples as separate executables, each linking to the framework library.
+   * Shaders are compiled per-example to `build/<Config>/<ExampleName>/Materials/` directory (next to each executable) to match runtime shader loading expectations.
 
 3. **Renderer Simplification**:
    * Removed pipeline state creation logic from `Renderer` (moved to `Material::Create()`).

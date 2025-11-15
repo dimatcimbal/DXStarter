@@ -24,8 +24,8 @@ bool Paths::GetMaterialsDirAbsPath(std::filesystem::path& OutPath) {
         std::filesystem::path moduleAbsPath(execAbsPath);
         moduleAbsPath.remove_filename();
 
-        // Append Shaders dirname
-        compiledShaderDir = moduleAbsPath / "Shaders";
+        // Append Materials dirname
+        compiledShaderDir = moduleAbsPath / "Materials";
     }
 
     OutPath = compiledShaderDir;
