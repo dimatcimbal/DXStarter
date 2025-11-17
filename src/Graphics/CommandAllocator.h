@@ -18,7 +18,7 @@ class CommandAllocator {
           mD3D12GraphicsCommandList{std::move(pGraphicsCommandList)} {}
 
     ~CommandAllocator() {
-        LOG_INFO(L"\t\tFreeing CommandAllocator of type %d\n", mType);
+        LOG_INFO(L"Freeing CommandAllocator of type %d\n", mType);
     }
 
     // Prohibit copying

@@ -1,21 +1,21 @@
-#include "Bytes.h"
+#include "ByteBuffer.h"
 
 #include <fstream>
 
 #include "Logging/Logging.h"
 
-bool Bytes::Load(std::filesystem::path FilePath, std::unique_ptr<Bytes>& OutBuffer) {
-    std::ifstream file(FilePath, std::ios::in | std::ios::binary);
+bool ByteBuffer::Create(std::filesystem::path FilePath, std::unique_ptr<ByteBuffer>& OutBuffer) {
+    std::ifstream File(FilePath, std::ios::in | std::ios::binary);
 
-    if (!file.is_open()) {
+    if (!File.is_open()) {
         LOG_ERROR(L"Failed to open file");
         return false;
     }
 
     // Get the file size
-    file.seekg(0, std::ios::end);
+    File.seekg(0, std::ios::end);
 
-    std::streampos fileSizePos = file.tellg();
+    std::streampos fileSizePos = File.tellg();
     if (fileSizePos < 0) {
         LOG_ERROR(L"Failed to get file size");
         return false;
@@ -27,22 +27,22 @@ bool Bytes::Load(std::filesystem::path FilePath, std::unique_ptr<Bytes>& OutBuff
     auto buffer = std::make_unique<std::byte[]>(fileSize);
 
     // Read file contents
-    file.seekg(0, std::ios::beg);
-    file.read(reinterpret_cast<char*>(buffer.get()), fileSize);
+    File.seekg(0, std::ios::beg);
+    File.read(reinterpret_cast<char*>(buffer.get()), fileSize);
 
     // Check if read was successful
-    if (file.fail() && !file.eof()) {
+    if (File.fail() && !File.eof()) {
         LOG_ERROR(L"Failed to read file contents");
         return false;
     }
 
     // Get actual bytes read (in case of eof before expected size)
-    size_t bytesRead = static_cast<size_t>(file.gcount());
+    size_t bytesRead = static_cast<size_t>(File.gcount());
     if (bytesRead != fileSize) {
         LOG_ERROR(L"File read incomplete: expected %zu bytes, read %zu bytes", fileSize, bytesRead);
         return false;
     }
 
-    OutBuffer = std::unique_ptr<Bytes>(new Bytes(fileSize, std::move(buffer)));
+    OutBuffer = std::make_unique<ByteBuffer>(fileSize, std::move(buffer));
     return true;
 }

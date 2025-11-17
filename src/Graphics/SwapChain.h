@@ -25,14 +25,14 @@ class SwapChain {
     SwapChain(uint32_t BufferCount,
               DXGI_FORMAT Format,
               uint32_t Flags,
-              Device& pDevice,
+              Device& Device,
               CommandQueue& GraphicsQueue,
               ComPtr<IDXGISwapChain4>&& DXGISwapChain)
         : mBackBufferCount{BufferCount},
           mFormat{Format},
           mFlags{Flags},
-          mDevice(pDevice),
-          mGraphicsQueue{GraphicsQueue},
+          mDevice(&Device),
+          mGraphicsQueue{&GraphicsQueue},
           mDXGISwapChain{std::move(DXGISwapChain)},
           mBackBuffers(BufferCount) {}
 
@@ -43,7 +43,7 @@ class SwapChain {
     }
 
     // Prohibit copying
-    SwapChain(const SwapChain& copy) = delete;
+    SwapChain(const SwapChain& Copy) = delete;
     SwapChain& operator=(const SwapChain&) = delete;
 
     // Accessors
@@ -70,7 +70,7 @@ class SwapChain {
      * Transition the current back buffer to a present state at the end of the frame.
      * @param Cmd Command list to record the resource barrier commands into.
      */
-    void EndFrame(FrameCommandList10& Cmd) const;
+    void EndFrame(FrameCommandList10& Cmdl) const;
 
    private:
     /**
@@ -79,16 +79,18 @@ class SwapChain {
      */
     bool BuffersReadTo(std::vector<std::unique_ptr<ColorBuffer>>& OutVector) const;
 
+    // Non-owned
+    CommandQueue* mGraphicsQueue;
+    Device* mDevice;
+
+    // Owned
+    ComPtr<IDXGISwapChain4> mDXGISwapChain;
+    // IMPORTANT! Keep the size of the vector intact as mBackBufferCount,
+    // i.e. avoid clear, push_back, etc.
+    std::vector<std::unique_ptr<ColorBuffer>> mBackBuffers;
+
     uint32_t mBackBufferCount;
     uint32_t mCurrentBackBufferIndex{0};
     DXGI_FORMAT mFormat;
     uint32_t mFlags;
-
-    Device& mDevice;
-    CommandQueue& mGraphicsQueue;
-    ComPtr<IDXGISwapChain4> mDXGISwapChain;
-
-    // IMPORTANT! Keep the size of the vector intact as mBackBufferCount,
-    // i.e. avoid clear, push_back, etc.
-    std::vector<std::unique_ptr<ColorBuffer>> mBackBuffers;
 };

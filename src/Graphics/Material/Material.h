@@ -1,23 +1,40 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
+#include <unordered_map>
 
 #include "Includes/GraphicsIncl.h"
 #include "PipelineState.h"
 #include "RootSignature.h"
 
-// Forward declarations
-class Device;
+using MaterialId = uint32_t;
+
+// The materialId from which materials get registered
+constexpr MaterialId kMaterialFirstId = 100;
 
 /**
- * Material class that owns the rendering pipeline state (PSO) and root signature.
+ * Material class that owns the rendering pipeline state (PSO).
  * Multiple mesh instances can share the same material.
  */
 class Material {
    public:
-    Material(std::unique_ptr<RootSignature>&& RootSignature,
-             std::unique_ptr<PipelineState>&& PipelineState)
-        : mRootSignature(std::move(RootSignature)), mPSO(std::move(PipelineState)) {}
+    static bool Create(std::unique_ptr<PipelineState>&& PipelineState,
+                       std::shared_ptr<Material>& OutMaterial) {
+        auto material = std::make_shared<Material>(std::move(PipelineState));
+        material->mMaterialId = sNextMaterialId.fetch_add(1, std::memory_order_relaxed);
+        GetMaterialRegistry()[material->mMaterialId] = material;
+
+        OutMaterial = material;
+        return true;
+    }
+
+    Material(std::unique_ptr<PipelineState>&& PipelineState)
+        : mPipelineState(std::move(PipelineState)) {}
+
+    static std::shared_ptr<Material> GetMaterial(MaterialId MaterialId) {
+        return GetMaterialRegistry()[MaterialId];
+    }
 
     ~Material() = default;
 
@@ -25,27 +42,29 @@ class Material {
     Material(const Material&) = delete;
     Material& operator=(const Material&) = delete;
 
-    // Allow moving
-    Material(Material&& other) noexcept
-        : mRootSignature(std::move(other.mRootSignature)), mPSO(std::move(other.mPSO)) {}
-
-    Material& operator=(Material&& other) noexcept {
-        if (this != &other) {
-            mRootSignature = std::move(other.mRootSignature);
-            mPSO = std::move(other.mPSO);
-        }
-        return *this;
-    }
-
-    ID3D12RootSignature* GetD3DRootSignature() const {
-        return mRootSignature ? mRootSignature->GetD3DRootSignature() : nullptr;
-    }
+    // Prohibit moving as the consistency of the MaterialRegistry could be corrupted with a move
+    // operation
+    Material(Material&& Other) = delete;
+    Material& operator=(Material&& Other) = delete;
 
     ID3D12PipelineState* GetD3DPipelineState() const {
-        return mPSO ? mPSO->GetD3DPipelineState() : nullptr;
+        return mPipelineState ? mPipelineState->GetD3DPipelineState() : nullptr;
+    }
+
+    MaterialId GetMaterialId() const {
+        return mMaterialId;
     }
 
    private:
-    std::unique_ptr<RootSignature> mRootSignature;
-    std::unique_ptr<PipelineState> mPSO;
+    // Using the function-local static pattern (Meyer's Singleton). This ensures the registry is
+    // initialized on first access and is thread-safe in C++11+.
+    static std::unordered_map<MaterialId, std::shared_ptr<Material>>& GetMaterialRegistry() {
+        static std::unordered_map<MaterialId, std::shared_ptr<Material>> registry;
+        return registry;
+    }
+
+    static std::atomic<MaterialId> sNextMaterialId;
+
+    std::unique_ptr<PipelineState> mPipelineState;
+    MaterialId mMaterialId{0};
 };

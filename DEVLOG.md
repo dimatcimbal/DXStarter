@@ -1,5 +1,53 @@
 # Devlog
 
+## [Mesh batching](https://github.com/dimatcimbal/DXStarter/pull/23)
+
+Implemented mesh batching system that groups draw calls by material to minimize pipeline state object (PSO) switches and improve rendering performance.
+
+1. **Scene Graph System**:
+   * Created `Node` class for hierarchical scene graph representation with parent-child relationships.
+   * Added `Node::TraverseDepthFirst()` static method for depth-first tree traversal using iterative stack-based approach.
+   * Each `Node` contains a `MaterialId`, local transform (`Matrix4`), optional `MeshInstance`, and child nodes.
+   * Nodes use `MaterialId` instead of direct `Material` references to enable efficient batching by grouping nodes with the same material.
+   * Implemented proper move semantics for `Node` with parent-child relationship management.
+
+2. **Renderer Batching Architecture**:
+   * Refactored `Renderer` to work with scene graph (`Node`) instead of single `MeshInstance`.
+   * Added `Renderer::SetScene()` method to set the root node of the scene graph.
+   * Implemented `RenderingKey` structure with bit-packed fields (`mObjectId`, `mMaterialId`, `mPass`) for efficient sorting.
+   * Added rendering cache members (`mRenderingOrder`, `mRenderingObjects`) to store sorted draw calls.
+   * `Renderer::Update()` traverses the scene graph, updates node transforms, and builds material-sorted rendering queue.
+   * `Renderer::Draw()` performs material-batched rendering: sets PSO once per material, then draws all meshes with that material.
+
+3. **Material Batching**:
+   * Draw calls are grouped by `MaterialId` using `std::set<RenderingKey>` for automatic sorting.
+   * PSO is set once per material group, minimizing expensive pipeline state switches.
+   * Implemented opaque pass rendering with material batching support.
+
+4. **MeshInstance Updates**:
+   * Changed `MeshInstance::Update()` to accept `WorldTransform` parameter instead of computing it internally.
+   * Updated `MeshInstance::Draw()` to be const-qualified for use in rendering loop.
+
+5. **Math Library**:
+   * Added `Matrix4` class for 4x4 matrix operations with transform support.
+   * Added `Vector` class for vector math operations.
+   * Added `Angle` class for angle representation and conversion.
+   * Updated `MathIncl.h` to include new math types.
+
+6. **File Organization**:
+   * Renamed `Bytes` class to `ByteBuffer` in `IO/` directory.
+   * Renamed `ByteBuffer` class to `DeviceBuffer` in `Graphics/Resource/` directory for clarity.
+   * Updated `Paths` class to work with new file structure.
+
+7. **Device Integration**:
+   * Added `Device::CreateMeshNode()` factory method that creates `Node` with `MaterialId` and `MeshInstance`.
+   * Properly manages resource creation and ownership for scene graph nodes.
+
+8. **SwapChain and DXView Updates**:
+   * Refactored `SwapChain` and `DXView` to work with new rendering architecture.
+   * Updated window management to integrate with scene-based rendering.
+
+
 ## [#21 Material class](https://github.com/dimatcimbal/DXStarter/pull/21)
 
 Introduced a Material class to handle pipeline state and root signature, enabling material sharing across multiple mesh instances.

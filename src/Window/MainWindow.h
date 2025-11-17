@@ -20,9 +20,14 @@ static constexpr int DEFAULT_WINDOW_HEIGHT = 720;
  */
 class MainWindow {
    public:
+    static void ShowErrorMessageBox(const wchar_t* Err = L"Failed to start the application.") {
+        MessageBox(nullptr, Err, L"Error", MB_OK | MB_ICONERROR);
+    }
+
     /**
      * Factory method to create the main application window.
-     * @param GraphicsContext Pointer to the GraphicsContext instance.
+     * @param Device Unique pointer to the Device instance (ownership transferred).
+     * @param Renderer Unique pointer to the Renderer instance (ownership transferred).
      * @param OutWindow A unique pointer to hold the created MainWindow instance.
      * @return true if the MainWindow was successfully created; false otherwise.
      */
@@ -38,13 +43,13 @@ class MainWindow {
      * @return The result of message processing. The meaning of the return value depends on the
      * message sent.
      */
-    static LRESULT CALLBACK WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK WindowProc(HWND HWnd, UINT UMsg, WPARAM WParam, LPARAM LParam);
 
-    MainWindow(HWND hWnd, HMODULE hInstance, ATOM wcAtom, std::unique_ptr<DXView>&& DXView)
-        : mHWnd(hWnd), mHInstance(hInstance), mWcAtom(wcAtom), mDXView(std::move(DXView)) {
+    MainWindow(HWND HWnd, HMODULE HInstance, ATOM WcAtom, std::unique_ptr<DXView>&& DXView)
+        : mHWnd(HWnd), mHInstance(HInstance), mWcAtom(WcAtom), mDXView(std::move(DXView)) {
         // Display and update the main window.
-        ShowWindow(hWnd, SW_SHOWDEFAULT);
-        UpdateWindow(hWnd);
+        ShowWindow(HWnd, SW_SHOWDEFAULT);
+        UpdateWindow(HWnd);
     }
 
     ~MainWindow() {
@@ -67,7 +72,7 @@ class MainWindow {
     MainWindow& operator=(const MainWindow&) = delete;
 
     // Provides MainWindow instance context (pThis) to the static WindowProc.
-    LRESULT OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+    LRESULT OnWindowMessage(HWND HWnd, UINT UMsg, WPARAM WParam, LPARAM LParam);
 
     // The main loop
     int HandleMessages();

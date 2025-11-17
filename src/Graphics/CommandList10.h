@@ -6,6 +6,8 @@
 #include "Includes/ComIncl.h"
 #include "Includes/GraphicsIncl.h"
 #include "Logging/Logging.h"
+#include "Mesh/Mesh.h"
+#include "Resource/DeviceBuffer.h"
 #include "Resource/Resource.h"
 #include "SwapChain.h"
 
@@ -25,29 +27,29 @@ class CommandList10 {
         // Execute and wait on current command list if valid
         if (mCommandQueue && mD3DCommandList) {
             if (!mCommandQueue->ExecuteCommandList(mD3DCommandList)) {
-                LOG_ERROR(L"\tFailed to execute command list.\n");
+                LOG_ERROR(L"Failed to execute command list.\n");
             }
             if (!mCommandQueue->WaitForIdle()) {
-                LOG_ERROR(L"\tFailed to wait on command queue.\n");
+                LOG_ERROR(L"Failed to wait on command queue.\n");
             }
         }
     }
 
     // Prohibit copying
-    CommandList10(const CommandList10& copy) = delete;
-    CommandList10& operator=(const CommandList10& copy) = delete;
+    CommandList10(const CommandList10& Copy) = delete;
+    CommandList10& operator=(const CommandList10& Copy) = delete;
 
     // Move constructor
-    CommandList10(CommandList10&& other) noexcept
-        : mCommandQueue{std::exchange(other.mCommandQueue, nullptr)},
-          mD3DCommandList{std::exchange(other.mD3DCommandList, nullptr)} {}
+    CommandList10(CommandList10&& Other) noexcept
+        : mCommandQueue{std::exchange(Other.mCommandQueue, nullptr)},
+          mD3DCommandList{std::exchange(Other.mD3DCommandList, nullptr)} {}
 
     // Move assignment operator
-    CommandList10& operator=(CommandList10&& other) noexcept {
-        if (this != &other) {
+    CommandList10& operator=(CommandList10&& Other) noexcept {
+        if (this != &Other) {
             // The command list doesn't own these resources, so just move the pointers
-            mCommandQueue = std::exchange(other.mCommandQueue, nullptr);
-            mD3DCommandList = std::exchange(other.mD3DCommandList, nullptr);
+            mCommandQueue = std::exchange(Other.mCommandQueue, nullptr);
+            mD3DCommandList = std::exchange(Other.mD3DCommandList, nullptr);
         }
         return *this;
     }
@@ -61,20 +63,22 @@ class CommandList10 {
                                           NumBytes);
     }
 
-    void SetRenderTarget(D3D12_CPU_DESCRIPTOR_HANDLE RTV) const {
-        SetRenderTargets(1, &RTV);
+    void SetConstantBuffer(uint32_t Index, DeviceBuffer& View) const {
+        mD3DCommandList->SetGraphicsRootConstantBufferView(Index, View.GetDeviceVirtualAddress());
     }
 
-    void SetRenderTargets(uint32_t count, D3D12_CPU_DESCRIPTOR_HANDLE RTVs[]) const {
-        mD3DCommandList->OMSetRenderTargets(count, RTVs, FALSE, nullptr);
+    void SetRenderTarget(ColorBuffer& RTV) const {
+        D3D12_CPU_DESCRIPTOR_HANDLE View = RTV.GetRTV();
+        mD3DCommandList->OMSetRenderTargets(1, &View, FALSE, nullptr);
     }
 
-    void SetVertexBuffer(uint32_t Slot, const D3D12_VERTEX_BUFFER_VIEW& VBView) const {
-        mD3DCommandList->IASetVertexBuffers(Slot, 1, &VBView);
-    }
+    void SetVertexBuffer(uint32_t Slot, const Mesh& Mesh) const {
+        D3D12_VERTEX_BUFFER_VIEW vbv;
+        vbv.BufferLocation = Mesh.GetVertexBuffer();
+        vbv.SizeInBytes = Mesh.GetVertexBufferSize();
+        vbv.StrideInBytes = Mesh.GetStrideInBytes();
 
-    void SetPrimitiveTopology(D3D12_PRIMITIVE_TOPOLOGY Topology) const {
-        mD3DCommandList->IASetPrimitiveTopology(Topology);
+        mD3DCommandList->IASetVertexBuffers(Slot, 1, &vbv);
     }
 
     void DrawInstanced(uint32_t NumVertexPerInstance, uint32_t StartVertexOffset) const {
@@ -96,27 +100,29 @@ class CommandList10 {
      *  This is a template method that accepts any type derived from Resource.
      */
     template <typename T>
-    void TransitionResource(T& Rsrc, D3D12_RESOURCE_STATES Before, D3D12_RESOURCE_STATES After)
+    void TransitionResource(T& Rsrc, D3D12_RESOURCE_STATES After)
         requires std::is_base_of_v<Resource, T>
     {
-        // Prepare a resource barrier for transition.
-        D3D12_RESOURCE_BARRIER barrier{};
+        D3D12_RESOURCE_STATES Before = Rsrc.GetCurrentState();
 
-        // Configure this as a transition barrier.
-        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        if (Before != After) {
+            // Prepare a transition barrier desc.
+            D3D12_RESOURCE_BARRIER desc{};
+            desc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            desc.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            // The resource to transition.
+            desc.Transition.pResource = Rsrc.GetResource();
+            // Transition all subresources
+            desc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            desc.Transition.StateBefore = Before;
+            desc.Transition.StateAfter = After;
 
-        // The resource to transition.
-        barrier.Transition.pResource = Rsrc.GetResource();
-        Rsrc.SetCurrentState(After);
+            Rsrc.SetCurrentState(After);
 
-        // Transition only the first subresource (subresource index 0).
-        barrier.Transition.Subresource = 0;
+            mD3DCommandList->ResourceBarrier(1, &desc);
+        }
 
-        barrier.Transition.StateBefore = Before;
-        barrier.Transition.StateAfter = After;
-
-        mD3DCommandList->ResourceBarrier(1, &barrier);
+        // TODO: Implement Split Barriers in another class
     }
 
     ID3D12GraphicsCommandList10* operator->() const {
@@ -134,15 +140,13 @@ class CommandList10 {
  * command list is executed and the command queue is waited on when it goes out of scope.
  */
 class FrameCommandList10 : public CommandList10 {
-    friend class Device;
-
    public:
     FrameCommandList10() = default;
 
-    FrameCommandList10(SwapChain* mSwapChain,
+    FrameCommandList10(SwapChain* SwapChain,
                        CommandQueue* CommandQueue,
                        ID3D12GraphicsCommandList10* CommandList)
-        : CommandList10(CommandQueue, CommandList), mSwapChain{mSwapChain} {
+        : CommandList10(CommandQueue, CommandList), mSwapChain{SwapChain} {
         // Begin the frame on the swap chain
         mSwapChain->BeginFrame(*this);
     }
@@ -158,19 +162,19 @@ class FrameCommandList10 : public CommandList10 {
     }
 
     // Prohibit copying
-    FrameCommandList10(const FrameCommandList10& copy) = delete;
-    FrameCommandList10& operator=(const FrameCommandList10& copy) = delete;
+    FrameCommandList10(const FrameCommandList10& Copy) = delete;
+    FrameCommandList10& operator=(const FrameCommandList10& Copy) = delete;
 
     // Move constructor
-    FrameCommandList10(FrameCommandList10&& other) noexcept
-        : CommandList10(std::move(other)), mSwapChain{std::exchange(other.mSwapChain, nullptr)} {}
+    FrameCommandList10(FrameCommandList10&& Other) noexcept
+        : CommandList10(std::move(Other)), mSwapChain{std::exchange(Other.mSwapChain, nullptr)} {}
 
     // Move assignment operator
-    FrameCommandList10& operator=(FrameCommandList10&& other) noexcept {
-        if (this != &other) {
+    FrameCommandList10& operator=(FrameCommandList10&& Other) noexcept {
+        if (this != &Other) {
             // The command list doesn't own these resources, so just move the pointers
-            mSwapChain = std::exchange(other.mSwapChain, nullptr);
-            CommandList10::operator=(std::move(other));
+            mSwapChain = std::exchange(Other.mSwapChain, nullptr);
+            CommandList10::operator=(std::move(Other));
         }
         return *this;
     }
@@ -178,7 +182,7 @@ class FrameCommandList10 : public CommandList10 {
     void ClearRenderTarget(const float* ClearColorRGBA) const {
         // The SwapChain should be set
         if (!mSwapChain) {
-            LOG_ERROR(L"\tClearRenderTarget: mSwapChain is nullptr.");
+            LOG_ERROR(L"ClearRenderTarget: mSwapChain is nullptr.");
             return;
         }
         D3D12_CPU_DESCRIPTOR_HANDLE RenderTarget = mSwapChain->GetCurrentBackBuffer().GetRTV();
@@ -186,5 +190,6 @@ class FrameCommandList10 : public CommandList10 {
     }
 
    private:
+    friend class Device;
     SwapChain* mSwapChain{nullptr};
 };

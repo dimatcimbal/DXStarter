@@ -2,20 +2,22 @@
 #include <memory>
 
 #include "Graphics/CommandList10.h"
-#include "Graphics/Material/Material.h"
 #include "Graphics/Resource/UploadBuffer.h"
+#include "Math/Matrix.h"
 #include "Mesh.h"
+
+struct MeshConstantBuffer {
+    Matrix4 World;
+};
 
 class MeshInstance {
    public:
-    MeshInstance(std::shared_ptr<Mesh>&& Mesh,
-                 std::shared_ptr<Material> Material,
-                 std::unique_ptr<UploadBuffer>&& CpuBuffer,
-                 std::unique_ptr<ByteBuffer>&& GpuBuffer)
-        : mMeshConstCpuBuffer{std::move(CpuBuffer)},
-          mMeshConstGpuBuffer{std::move(GpuBuffer)},
-          mMaterial(std::move(Material)),
-          mMesh(std::move(Mesh)) {}
+    MeshInstance(Mesh& Mesh,
+                 std::unique_ptr<UploadBuffer>&& UploadBuffer,
+                 std::unique_ptr<DeviceBuffer>&& DeviceBuffer)
+        : mUploadConstantBuffer{std::move(UploadBuffer)},
+          mMeshConstantBuffer{std::move(DeviceBuffer)},
+          mMesh(&Mesh) {}
 
     // Prohibit copying
     MeshInstance(const MeshInstance&) = delete;
@@ -23,35 +25,34 @@ class MeshInstance {
 
     // Allow moving
     MeshInstance(MeshInstance&& other) noexcept
-        : mMeshConstCpuBuffer(std::move(other.mMeshConstCpuBuffer)),
-          mMeshConstGpuBuffer(std::move(other.mMeshConstGpuBuffer)),
-          mMaterial(std::move(other.mMaterial)),
-          mMesh(std::move(other.mMesh)) {}
+        : mUploadConstantBuffer(std::exchange(other.mUploadConstantBuffer, nullptr)),
+          mMeshConstantBuffer(std::exchange(other.mMeshConstantBuffer, nullptr)),
+          mMesh(std::exchange(other.mMesh, nullptr)) {}
 
     MeshInstance& operator=(MeshInstance&& other) noexcept {
         if (this != &other) {
-            mMeshConstCpuBuffer = std::move(other.mMeshConstCpuBuffer);
-            mMeshConstGpuBuffer = std::move(other.mMeshConstGpuBuffer);
-            mMaterial = std::move(other.mMaterial);
-            mMesh = std::move(other.mMesh);
+            mUploadConstantBuffer = std::exchange(other.mUploadConstantBuffer, nullptr);
+            mMeshConstantBuffer = std::exchange(other.mMeshConstantBuffer, nullptr);
+            mMesh = std::exchange(other.mMesh, nullptr);
         }
         return *this;
     }
 
-    bool Update(CommandList10& Cmdl, float DeltaTime);
-    bool Draw(CommandList10& Cmdl) const;
+    void Update(CommandList10& Cmdl, const Matrix4& WorldTransform) const;
+    void Draw(const CommandList10& Cmdl) const;
 
-    std::shared_ptr<Material> GetMaterial() const {
-        return mMaterial;
-    }
-
-    std::shared_ptr<Mesh> GetMesh() const {
+    Mesh* GetMesh() const {
         return mMesh;
     }
 
+    D3D12_GPU_VIRTUAL_ADDRESS GetConstantBuffer() const {
+        return mMeshConstantBuffer->GetDeviceVirtualAddress();
+    }
+
    private:
-    std::unique_ptr<UploadBuffer> mMeshConstCpuBuffer;
-    std::unique_ptr<ByteBuffer> mMeshConstGpuBuffer;
-    std::shared_ptr<Material> mMaterial;
-    std::shared_ptr<Mesh> mMesh;
+    void WriteToUploadBuffer(const Matrix4& WorldTransform) const;
+
+    std::unique_ptr<UploadBuffer> mUploadConstantBuffer;
+    std::unique_ptr<DeviceBuffer> mMeshConstantBuffer;
+    Mesh* mMesh;
 };

@@ -1,4 +1,4 @@
-﻿// Examples/PlainTriangle
+// Example/RotatedTriangle
 #include <Windows.h>
 
 #include <filesystem>
@@ -44,7 +44,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     std::unique_ptr<ByteBuffer> vertexShaderBytecode;
-    if (!ByteBuffer::Create(materialDir / "LocalPosition.vertx.cso", vertexShaderBytecode)) {
+    if (!ByteBuffer::Create(materialDir / "WorldPosition.vertx.cso", vertexShaderBytecode)) {
         LOG_ERROR(L"Failed to load vertex shader.");
         MainWindow::ShowErrorMessageBox();
         return -1;
@@ -58,7 +58,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     std::unique_ptr<ByteBuffer> rootSignBytecode;
-    if (!ByteBuffer::Create(materialDir / "Base.rsign.cso", rootSignBytecode)) {
+    if (!ByteBuffer::Create(materialDir / "WorldPosition.rsign.cso", rootSignBytecode)) {
         LOG_ERROR(L"Failed to load root signature.");
         MainWindow::ShowErrorMessageBox();
         return -1;
@@ -95,12 +95,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
-    std::unique_ptr<Node> scene;
-    if (!device->CreateMeshNode(materialId, *tri, scene)) {
+    // Tri node One
+    std::unique_ptr<Node> straightNode;
+    if (!device->CreateMeshNode(materialId, *tri, straightNode)) {
         LOG_ERROR(L"Failed to create Node.\n");
         MainWindow::ShowErrorMessageBox();
         return -1;
     }
+    straightNode->GetTransform().Translate(Vector3(-0.3, 0., 0.));
+
+    // Tri node two
+    std::unique_ptr<Node> rotatedNode;
+    if (!device->CreateMeshNode(materialId, *tri, rotatedNode)) {
+        LOG_ERROR(L"Failed to create Node.\n");
+        MainWindow::ShowErrorMessageBox();
+        return -1;
+    }
+    rotatedNode->GetTransform().Translate(Vector3(0.3, 0., 0.));
+    rotatedNode->GetTransform().RotateZ(270);
+    
+    std::unique_ptr<Node> scene = std::make_unique<Node>();
+    scene->AddChild(std::move(straightNode));
+    scene->AddChild(std::move(rotatedNode));
 
     // The Renderer
     std::unique_ptr<Renderer> renderer;

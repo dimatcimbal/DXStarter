@@ -5,15 +5,15 @@
 #include "Graphics/Renderer.h"
 #include "Logging/Logging.h"
 
-void DXView::OnWindowCreate(HWND hWnd) {
-    LOG_INFO(L"Renderer::OnCreate with window handle %p\n", hWnd);
-    mGraphicsHwnd = hWnd;
+void DXView::OnWindowCreate(HWND HWnd) {
+    LOG_INFO(L"Window created with the handle %p\n", HWnd);
+    mGraphicsHwnd = HWnd;
     mIsCreating = true;
     mIsRunning = true;
 }
 
 void DXView::OnWindowResize(int NewWidth, int NewHeight) {
-    LOG_INFO(L"Renderer::OnResize to %d x %d\n", NewWidth, NewHeight);
+    LOG_INFO(L"Window resized to %d x %d\n", NewWidth, NewHeight);
 
     if (NewWidth == 0 || NewHeight == 0) {
         // Window is minimized or has zero area; ignore resize
@@ -30,27 +30,27 @@ void DXView::OnWindowResize(int NewWidth, int NewHeight) {
 
 bool DXView::Update() {
     // Calculate delta time
-    LARGE_INTEGER CurrentTime;
-    QueryPerformanceCounter(&CurrentTime);
+    LARGE_INTEGER currentTime;
+    QueryPerformanceCounter(&currentTime);
 
-    float DeltaTime = 0.0f;
+    float deltaTime = 0.0f;
     if (mLastFrameTime.QuadPart != 0) {
         // Calculate delta time in seconds
         // mLastFrameTime.QuadPart == 0 indicates first frame (no previous time available)
-        DeltaTime = static_cast<float>(CurrentTime.QuadPart - mLastFrameTime.QuadPart) /
+        deltaTime = static_cast<float>(currentTime.QuadPart - mLastFrameTime.QuadPart) /
                     static_cast<float>(mFrequency.QuadPart);
     }
 
-    mLastFrameTime = CurrentTime;
+    mLastFrameTime = currentTime;
 
     {  // Scene update
-        CommandList10 Cmdl;
-        if (!mDevice.GetCommandList(Cmdl)) {
+        CommandList10 cmdl;
+        if (!mDevice->GetCommandList(cmdl)) {
             LOG_ERROR(L"Failed to get command list for model update.\n");
             return false;
         }
 
-        if (!mRenderer.Update(Cmdl, DeltaTime)) {
+        if (!mRenderer->Update(cmdl, deltaTime)) {
             LOG_ERROR(L"Failed to update the scene.\n");
             return false;
         }
@@ -84,7 +84,7 @@ bool DXView::Update() {
         // Postponed creation of the graphic resources
         if (!mSwapChain) {
             LOG_INFO("Creating the SwapChain of the size %d x %d.\n", mWidth, mHeight);
-            if (!mDevice.CreateSwapChain(mGraphicsHwnd, mWidth, mHeight, mSwapChain)) {
+            if (!mDevice->CreateSwapChain(mGraphicsHwnd, mWidth, mHeight, mSwapChain)) {
                 LOG_ERROR(L"Failed while calling Device::CreateSwapChain handler.\n");
                 return false;
             }
@@ -97,24 +97,24 @@ bool DXView::Update() {
         }
 
         // Update viewport and scissor rect to match new swap chain size
-        mRenderer.Resize(mWidth, mHeight);
+        mRenderer->Resize(mWidth, mHeight);
     }
 
     {  // Scene draw
         if (mSwapChain == nullptr) {
-            LOG_ERROR(L"\tSwapChain is not initialized.\n");
+            LOG_ERROR(L"SwapChain is not initialized.\n");
             return false;
         }
 
         // Get a command list
-        FrameCommandList10 Cmdl;
-        if (!mDevice.GetFrameCommandList(*mSwapChain, Cmdl)) {
+        FrameCommandList10 cmdl;
+        if (!mDevice->GetFrameCommandList(*mSwapChain, cmdl)) {
             LOG_ERROR(L"Failed to draw a frame.\n");
             return false;
         }
 
         // Do draw
-        if (!mRenderer.Draw(Cmdl)) {
+        if (!mRenderer->Draw(cmdl)) {
             LOG_ERROR(L"Failed to draw a frame.\n");
             return false;
         }
