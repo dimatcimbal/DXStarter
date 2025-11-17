@@ -1,4 +1,5 @@
-﻿#include <Windows.h>
+﻿// Examples/PlainTriangle
+#include <Windows.h>
 
 #include <filesystem>
 #include <memory>
@@ -24,11 +25,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // A simple 3D triangle
     float VertexData[] = {// A (x,y,z)
-                          -1.f, -1.f, 0.f,
+                          -0.1f, -0.1f, 0.f,
                           // B (x,y,z)
-                          0.f, 1.f, 0.f,
+                          0.f, 0.1f, 0.f,
                           // C (x,y,z)
-                          1.f, -1.f, 0.f};
+                          0.1f, -0.1f, 0.f};
 
     // DX device
     std::unique_ptr<Device> pDevice;
