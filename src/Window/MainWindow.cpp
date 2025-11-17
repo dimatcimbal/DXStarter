@@ -41,7 +41,7 @@ bool MainWindow::Create(Device& Device,
     std::unique_ptr<DXView> pDXView = std::make_unique<DXView>(Device, Renderer);
 
     // Create a local MainWindow instance to pass as lpParam,
-    // passing nullptr as hWnd, we'll set it after CreateWindowEx
+    // passing nullptr as HWnd, we'll set it after CreateWindowEx
     std::unique_ptr<MainWindow> pWindow =
         std::make_unique<MainWindow>(nullptr, hInstance, wcAtom, std::move(pDXView));
 
@@ -82,7 +82,7 @@ bool MainWindow::Create(Device& Device,
         return false;
     }
 
-    // Update the hWnd in the MainWindow instance
+    // Update the HWnd in the MainWindow instance
     pWindow->mHWnd = hWnd;
 
     // Return the created window
@@ -92,45 +92,45 @@ bool MainWindow::Create(Device& Device,
 
 // IMPORTANT! Requires MainWindow instance pointer to be set in the user data (GWLP_USERDATA)
 // This function simply forwards the message to the instance handler.
-LRESULT CALLBACK MainWindow::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+LRESULT CALLBACK MainWindow::WindowProc(HWND HWnd, UINT UMsg, WPARAM WParam, LPARAM LParam) {
     MainWindow* pThis;
 
-    if (uMsg == WM_NCCREATE) {
+    if (UMsg == WM_NCCREATE) {
         // If WM_NCCREATE get the 'this' pointer from lpCreateParams
         // and store it in user data.
-        CREATESTRUCT* pCreateStruct = reinterpret_cast<CREATESTRUCT*>(lParam);
+        CREATESTRUCT* pCreateStruct = reinterpret_cast<CREATESTRUCT*>(LParam);
         pThis = reinterpret_cast<MainWindow*>(pCreateStruct->lpCreateParams);
 
         // Updating window storage, setting user data in this case hence GWLP_USERDATA
-        SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
+        SetWindowLongPtr(HWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
     } else {
         // Get the 'this' pointer from user data
-        pThis = reinterpret_cast<MainWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+        pThis = reinterpret_cast<MainWindow*>(GetWindowLongPtr(HWnd, GWLP_USERDATA));
     }
 
     if (pThis) {
-        return pThis->OnWindowMessage(hWnd, uMsg, wParam, lParam);
+        return pThis->OnWindowMessage(HWnd, UMsg, WParam, LParam);
     }
 
     // Fallback
-    return DefWindowProc(hWnd, uMsg, wParam, lParam);
+    return DefWindowProc(HWnd, UMsg, WParam, LParam);
 }
 
-LRESULT MainWindow::OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    switch (uMsg) {
+LRESULT MainWindow::OnWindowMessage(HWND HWnd, UINT UMsg, WPARAM WParam, LPARAM LParam) {
+    switch (UMsg) {
         case WM_CREATE: {
-            mDXView->OnWindowCreate(hWnd);
+            mDXView->OnWindowCreate(HWnd);
             return 0;
         }
         case WM_SIZE: {
-            int width = LOWORD(lParam);
-            int height = HIWORD(lParam);
+            int width = LOWORD(LParam);
+            int height = HIWORD(LParam);
             mDXView->OnWindowResize(width, height);
             return 0;
         }
         case WM_CLOSE: {
             // The user wants to close the window.
-            DestroyWindow(hWnd);
+            DestroyWindow(HWnd);
             return 0;
         }
         case WM_DESTROY: {
@@ -139,7 +139,7 @@ LRESULT MainWindow::OnWindowMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
             return 0;
         }
         default: {
-            return DefWindowProc(hWnd, uMsg, wParam, lParam);
+            return DefWindowProc(HWnd, UMsg, WParam, LParam);
         }
     }
 }

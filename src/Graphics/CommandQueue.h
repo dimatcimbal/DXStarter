@@ -23,7 +23,11 @@ class CommandQueue {
           mD3D12Fence{std::move(D3D12Fence)},
           mD3D12CommandQueue{std::move(D3D12CommandQueue)} {}
     ~CommandQueue() {
-        LOG_INFO(L"\t\tFreeing CommandQueue of type %d\n", mType);
+        LOG_INFO(L"Freeing CommandQueue of type %d\n", mType);
+        if (mFenceEventHandle != INVALID_HANDLE_VALUE) {
+            CloseHandle(mFenceEventHandle);
+            mFenceEventHandle = INVALID_HANDLE_VALUE;
+        }
     }
 
     // Class members

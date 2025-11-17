@@ -30,7 +30,7 @@ class DebugLayer {
 #endif
 
     ~DebugLayer() {
-        LOG_INFO(L"\t\tFreeing DebugLayer.\n");
+        LOG_INFO(L"Freeing DebugLayer.\n");
         ReportLiveObjects();
     };
 

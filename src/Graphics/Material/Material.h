@@ -4,20 +4,27 @@
 
 #include "Includes/GraphicsIncl.h"
 #include "PipelineState.h"
-#include "RootSignature.h"
 
-// Forward declarations
-class Device;
+class MaterialRegistry;
+
+using MaterialId = uint32_t;
+
+// The materialId from which materials get registered
+constexpr MaterialId kMaterialFirstId = 100;
 
 /**
- * Material class that owns the rendering pipeline state (PSO) and root signature.
+ * Material class that owns the rendering pipeline state (PSO).
  * Multiple mesh instances can share the same material.
  */
 class Material {
    public:
-    Material(std::unique_ptr<RootSignature>&& RootSignature,
-             std::unique_ptr<PipelineState>&& PipelineState)
-        : mRootSignature(std::move(RootSignature)), mPSO(std::move(PipelineState)) {}
+    static bool Create(std::unique_ptr<PipelineState>&& PipelineState,
+                       std::shared_ptr<Material>& OutMaterial);
+
+    static bool GetMaterial(MaterialId MaterialId, std::shared_ptr<Material>& OutMaterial);
+
+    Material(std::unique_ptr<PipelineState>&& PipelineState)
+        : mPipelineState(std::move(PipelineState)) {}
 
     ~Material() = default;
 
@@ -25,27 +32,22 @@ class Material {
     Material(const Material&) = delete;
     Material& operator=(const Material&) = delete;
 
-    // Allow moving
-    Material(Material&& other) noexcept
-        : mRootSignature(std::move(other.mRootSignature)), mPSO(std::move(other.mPSO)) {}
-
-    Material& operator=(Material&& other) noexcept {
-        if (this != &other) {
-            mRootSignature = std::move(other.mRootSignature);
-            mPSO = std::move(other.mPSO);
-        }
-        return *this;
-    }
-
-    ID3D12RootSignature* GetD3DRootSignature() const {
-        return mRootSignature ? mRootSignature->GetD3DRootSignature() : nullptr;
-    }
+    // Prohibit moving as the consistency of the MaterialRegistry could be corrupted with a move
+    // operation
+    Material(Material&& Other) = delete;
+    Material& operator=(Material&& Other) = delete;
 
     ID3D12PipelineState* GetD3DPipelineState() const {
-        return mPSO ? mPSO->GetD3DPipelineState() : nullptr;
+        return mPipelineState ? mPipelineState->GetD3DPipelineState() : nullptr;
+    }
+
+    MaterialId GetMaterialId() const {
+        return mMaterialId;
     }
 
    private:
-    std::unique_ptr<RootSignature> mRootSignature;
-    std::unique_ptr<PipelineState> mPSO;
+    friend class MaterialRegistry;
+
+    std::unique_ptr<PipelineState> mPipelineState;
+    MaterialId mMaterialId{0};
 };

@@ -1,12 +1,12 @@
 #pragma once
 #include <utility>
 
-#include "Graphics/Resource/ByteBuffer.h"
+#include "Graphics/Resource/DeviceBuffer.h"
 #include "Includes/GraphicsIncl.h"
 
 class Mesh {
    public:
-    Mesh(uint32_t VertexCount, uint32_t VertexStrideInBytes, ByteBuffer&& VertexBuffer)
+    Mesh(uint32_t VertexCount, uint32_t VertexStrideInBytes, DeviceBuffer&& VertexBuffer)
         : mVertexCount(VertexCount),
           mVertexStrideInBytes(VertexStrideInBytes),
           mVertexBuffer(std::move(VertexBuffer)) {}
@@ -21,23 +21,15 @@ class Mesh {
 
     Mesh& operator=(Mesh&& other) noexcept {
         if (this != &other) {
-            mVertexCount = std::exchange(other.mVertexCount, 0),
+            mVertexCount = std::exchange(other.mVertexCount, 0);
             mVertexStrideInBytes = std::exchange(other.mVertexStrideInBytes, 0);
             mVertexBuffer = std::move(other.mVertexBuffer);
         }
         return *this;
     }
 
-    D3D12_VERTEX_BUFFER_VIEW GetVertexBufferView() {
-        D3D12_VERTEX_BUFFER_VIEW vbv;
-        vbv.BufferLocation = GetVertexBuffer();
-        vbv.SizeInBytes = GetVertexBufferSize();
-        vbv.StrideInBytes = GetStrideInBytes();
-        return vbv;
-    }
-
     D3D12_GPU_VIRTUAL_ADDRESS GetVertexBuffer() const {
-        return mVertexBuffer.GetGPUVirtualAddress();
+        return mVertexBuffer.GetDeviceVirtualAddress();
     }
 
     size_t GetVertexBufferSize() const {
@@ -53,7 +45,7 @@ class Mesh {
     }
 
    private:
-    ByteBuffer mVertexBuffer;
+    DeviceBuffer mVertexBuffer;
     uint32_t mVertexStrideInBytes;
     uint32_t mVertexCount;
 };
