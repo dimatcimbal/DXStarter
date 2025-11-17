@@ -4,9 +4,9 @@
 #include <filesystem>
 #include <memory>
 
-class Bytes {
+class ByteBuffer {
    public:
-    static bool Load(std::filesystem::path path, std::unique_ptr<Bytes>& OutBuffer);
+    static bool Create(std::filesystem::path FilePath, std::unique_ptr<ByteBuffer>& OutBuffer);
 
     /** Aligns the given size to 256 bytes, which is required for constant buffers in D3D12.
      * @param Size The size to align.
@@ -16,19 +16,23 @@ class Bytes {
         return (Size + 255) & ~255;
     }
 
-    ~Bytes() = default;
+    ByteBuffer(size_t Size, std::unique_ptr<std::byte[]>&& BufferData)
+        : mBuffer(std::move(BufferData)), mSize(Size) {}
+
+    ~ByteBuffer() = default;
 
     // Prohibit copying
-    Bytes(const Bytes& other) = delete;
-    Bytes& operator=(const Bytes& other) = delete;
+    ByteBuffer(const ByteBuffer& Other) = delete;
+    ByteBuffer& operator=(const ByteBuffer& Other) = delete;
 
     // Allow moving
-    Bytes(Bytes&& other) noexcept
-        : mBuffer(std::move(other.mBuffer)), mSize(std::exchange(other.mSize, 0)) {}
-    Bytes& operator=(Bytes&& other) noexcept {
-        if (this != &other) {
-            mBuffer = std::move(other.mBuffer);
-            mSize = std::exchange(other.mSize, 0);
+    ByteBuffer(ByteBuffer&& Other) noexcept
+        : mBuffer(std::move(Other.mBuffer)), mSize(std::exchange(Other.mSize, 0)) {}
+
+    ByteBuffer& operator=(ByteBuffer&& Other) noexcept {
+        if (this != &Other) {
+            mBuffer = std::move(Other.mBuffer);
+            mSize = std::exchange(Other.mSize, 0);
         }
         return *this;
     }
@@ -43,9 +47,6 @@ class Bytes {
     }
 
    private:
-    Bytes(size_t Size, std::unique_ptr<std::byte[]>&& Buffer)
-        : mBuffer(std::move(Buffer)), mSize(Size) {}
-
     std::unique_ptr<std::byte[]> mBuffer;
     size_t mSize;
 };

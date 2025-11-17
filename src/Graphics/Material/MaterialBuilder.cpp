@@ -1,7 +1,6 @@
 #include "MaterialBuilder.h"
 
 #include "Graphics/Device.h"
-#include "IO/Bytes.h"
 #include "Logging/Logging.h"
 #include "Material.h"
 
@@ -17,21 +16,14 @@ D3D12_INPUT_ELEMENT_DESC PositionOnly[] = {
         0  // 0 due to D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA chosen above
     }};
 
-bool MaterialBuilder::CreateMaterial(Device& Device, std::shared_ptr<Material>& OutMaterial) {
-    auto rootSigIt = mShaderBytecodes.find(ShaderType::RootSignature);
-    if (rootSigIt == mShaderBytecodes.end() || !rootSigIt->second) {
-        LOG_ERROR(L"Root signature bytecode not set.");
-        return false;
-    }
-
-    std::unique_ptr<RootSignature> pRootSignature;
-    if (!Device.CreateRootSignature(*rootSigIt->second, pRootSignature)) {
-        LOG_ERROR(L"Failed to create root signature.");
-        return false;
-    }
-
+bool MaterialBuilder::CreateMaterial(Device& Device,
+                                     RootSignature& RootSignature,
+                                     std::shared_ptr<Material>& OutMaterial) {
     // Create Pipeline State object
-    mPSODesc.pRootSignature = pRootSignature->GetD3DRootSignature();
+
+    // RootSignature gets set in the Renderer.
+    mPSODesc.pRootSignature = RootSignature.GetD3DRootSignature();
+
     // Input-assembler
     mPSODesc.InputLayout.NumElements = _countof(PositionOnly);
     mPSODesc.InputLayout.pInputElementDescs = PositionOnly;
@@ -146,6 +138,9 @@ bool MaterialBuilder::CreateMaterial(Device& Device, std::shared_ptr<Material>& 
         return false;
     }
 
-    OutMaterial = std::make_shared<Material>(std::move(pRootSignature), std::move(pPipelineState));
+    if (!Material::Create(std::move(pPipelineState), OutMaterial)) {
+        LOG_ERROR(L"Failed to create material object.\n");
+        return false;
+    }
     return true;
 }

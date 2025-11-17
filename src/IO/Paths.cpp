@@ -4,13 +4,12 @@
 
 #include "Logging/Logging.h"
 
-bool Paths::GetMaterialsDirAbsPath(std::filesystem::path& OutPath) {
-    static std::filesystem::path compiledShaderDir;
-    if (compiledShaderDir.empty()) {
-        // Get abs path to the exec
-        wchar_t execAbsPath[MAX_PATH];
+bool Paths::GetMaterialsDir(std::filesystem::path& OutPath) {
+    static std::filesystem::path cachedMaterialsDir;
+    if (cachedMaterialsDir.empty()) {
+        wchar_t execPathStr[MAX_PATH];
 
-        DWORD result = GetModuleFileNameW(nullptr, execAbsPath, MAX_PATH);
+        DWORD result = GetModuleFileNameW(nullptr, execPathStr, MAX_PATH);
         if (result == 0) {
             LOG_ERROR(L"Failed to get path to the executing module as %lu\n", GetLastError());
             return false;
@@ -20,14 +19,16 @@ bool Paths::GetMaterialsDirAbsPath(std::filesystem::path& OutPath) {
             return false;
         }
 
-        // Drop the file name
-        std::filesystem::path moduleAbsPath(execAbsPath);
-        moduleAbsPath.remove_filename();
+        std::filesystem::path execAbsPath(execPathStr);
+        std::filesystem::path parentAbsPath(execAbsPath
+                                                .parent_path()  // Current example dir
+                                                .parent_path()  // Parent of the current example dir
+        );
 
-        // Append Materials dirname
-        compiledShaderDir = moduleAbsPath / "Materials";
+        // Materials home dir is at the same level as the current example dir
+        cachedMaterialsDir = parentAbsPath / "Materials";
     }
 
-    OutPath = compiledShaderDir;
+    OutPath = cachedMaterialsDir;
     return true;
 }

@@ -13,13 +13,13 @@ BufferRange UploadBuffer::Map() {
 }
 
 bool UploadBuffer::UploadBytes(size_t Size, const void* data) {
-    BufferRange BufferRange = Map(0, Size);
-    return BufferRange.UploadBytes(Size, data);
+    BufferRange bufferRange = Map(0, Size);
+    return bufferRange.UploadBytes(Size, data);
 }
 
 bool BufferRange::UploadBytes(size_t size, const void* data) const {
     if (size > mSize) {
-        LOG_ERROR(L"\t\tData size (%zu) exceeds upload buffer size (%zu).\n", size, mSize);
+        LOG_ERROR(L"Data size (%zu) exceeds upload buffer size (%zu).\n", size, mSize);
         return false;
     }
 

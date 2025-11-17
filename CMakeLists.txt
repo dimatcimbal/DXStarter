@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Examples)
+set(MATERIALS_DIR ${EXAMPLES_DIR}/Materials)
 # end of config
 
 # --- Framework Library ---
@@ -59,6 +60,11 @@ target_compile_definitions(DXFramework PUBLIC
     UNICODE _UNICODE
 )
 
+# Enable fast floating-point model for all builds
+target_compile_options(DXFramework PUBLIC
+    $<$<CXX_COMPILER_ID:MSVC>:/fp:fast>
+)
+
 # --- HLSL shader compilation (requires DXC for root signatures) ---
 
 # Find dxc.exe (Windows SDK). Required for root signature compilation.
@@ -70,98 +76,74 @@ find_program(DXC_EXE dxc
     REQUIRED
 )
 
-# Function to compile shaders for a target
-function(compile_shaders_for_target TARGET_NAME SHADER_SOURCE_DIR)
-    # Per-config shader output directory (next to executable)
-    # Match the RUNTIME_OUTPUT_DIRECTORY structure: ${CMAKE_BINARY_DIR}/$<CONFIG>/${TARGET_NAME}/Materials/
-    set(SHADER_OUT_DIR "${CMAKE_BINARY_DIR}/$<CONFIG>/${TARGET_NAME}/Materials/")
+# Collect all shaders from the shared Materials directory
+file(GLOB_RECURSE ALL_SHADERS "${MATERIALS_DIR}/*.hlsl")
+
+# Create a single shared shader compilation target
+set(SHARED_SHADER_TARGET_NAME SharedShaders)
+add_custom_target(${SHARED_SHADER_TARGET_NAME} ALL)
+
+foreach(SHADER ${ALL_SHADERS})
+    get_filename_component(SHADER_NAME ${SHADER} NAME_WE)
+    get_filename_component(SHADER_FULL_NAME ${SHADER} NAME)
+    get_filename_component(SHADER_EXT ${SHADER} EXT)
     
-    # Collect all shaders to compile from the example's shader directory
-    # Try multiple possible locations
-    set(SHADER_SEARCH_PATHS
-        "${SHADER_SOURCE_DIR}/Materials"
-    )
+    # Skip .hlsli files (they're headers/includes, not shaders to compile)
+    if (SHADER_EXT STREQUAL ".hlsli")
+        continue()
+    endif()
+
+    # Choose tool and profile per shader based on filename
+    set(SHADER_ENTRY main)
+    set(IS_ROOT_SIGNATURE FALSE)
     
-    set(HLSL_SHADERS "")
-    foreach(SEARCH_PATH ${SHADER_SEARCH_PATHS})
-        file(GLOB_RECURSE FOUND_SHADERS "${SEARCH_PATH}/*.hlsl")
-        if(FOUND_SHADERS)
-            list(APPEND HLSL_SHADERS ${FOUND_SHADERS})
-        endif()
-    endforeach()
-    
-    if(NOT HLSL_SHADERS)
-        # No shaders found, skip shader compilation for this target
-        return()
+    # Check shader type based on filename pattern: *.rsign.hlsl, *.pixel.hlsl, *.vertx.hlsl
+    if (SHADER_FULL_NAME MATCHES "\\.rsign\\.hlsl$")
+        set(IS_ROOT_SIGNATURE TRUE)
+        set(SHADER_ENTRY ROOTSIGN)
+        set(SHADER_TYPE_SUFFIX ".rsign")
+        # Root signature profile
+        set(SHADER_PROFILE_DXC rootsig_1_1)
+    elseif (SHADER_FULL_NAME MATCHES "\\.pixel\\.hlsl$")
+        set(SHADER_TYPE_SUFFIX ".pixel")
+        # Pixel shader profiles
+        set(SHADER_PROFILE_DXC ps_6_0)
+    elseif (SHADER_FULL_NAME MATCHES "\\.vertx\\.hlsl$")
+        set(SHADER_TYPE_SUFFIX ".vertx")
+        # Vertex shader profiles (supports both .vertx and .vertex)
+        set(SHADER_PROFILE_DXC vs_6_0)
+    else()
+        # Default to vertex shader for backward compatibility (no suffix)
+        set(SHADER_TYPE_SUFFIX "")
+        set(SHADER_PROFILE_DXC vs_6_0)
     endif()
     
-    # Create a shader target for this example
-    set(SHADER_TARGET_NAME ${TARGET_NAME}_Shaders)
-    add_custom_target(${SHADER_TARGET_NAME} ALL)
-    
-    foreach(SHADER ${HLSL_SHADERS})
-        get_filename_component(SHADER_NAME ${SHADER} NAME_WE)
-        get_filename_component(SHADER_FULL_NAME ${SHADER} NAME)
-        get_filename_component(SHADER_EXT ${SHADER} EXT)
-        
-        # Skip .hlsli files (they're headers/includes, not shaders to compile)
-        if (SHADER_EXT STREQUAL ".hlsli")
-            continue()
-        endif()
+    # Construct output filename with shader type prefix included
+    # Extract base name and explicitly append the shader type suffix to ensure it's included
+    string(REGEX REPLACE "${SHADER_TYPE_SUFFIX}$" "" SHADER_BASE_NAME ${SHADER_NAME})
+    # Compile to shared location - use generator expression directly in OUTPUT
+    set(SHARED_OUT_CSO "${CMAKE_BINARY_DIR}/$<CONFIG>/Materials/${SHADER_BASE_NAME}${SHADER_TYPE_SUFFIX}.cso")
 
-        # Choose tool and profile per shader based on filename
-        set(SHADER_ENTRY main)
-        set(IS_ROOT_SIGNATURE FALSE)
-        
-        # Check shader type based on filename pattern: *.rsign.hlsl, *.pixel.hlsl, *.vertex.hlsl
-        if (SHADER_FULL_NAME MATCHES "\\.rsign\\.hlsl$")
-            set(IS_ROOT_SIGNATURE TRUE)
-            set(SHADER_ENTRY ROOTSIGN)
-            set(SHADER_TYPE_SUFFIX ".rsign")
-            # Root signature profile
-            set(SHADER_PROFILE_DXC rootsig_1_1)
-        elseif (SHADER_FULL_NAME MATCHES "\\.pixel\\.hlsl$")
-            set(SHADER_TYPE_SUFFIX ".pixel")
-            # Pixel shader profiles
-            set(SHADER_PROFILE_DXC ps_6_0)
-        elseif (SHADER_FULL_NAME MATCHES "\\.vertx\\.hlsl$")
-            set(SHADER_TYPE_SUFFIX ".vertx")
-            # Vertex shader profiles (supports both .vertx and .vertex)
-            set(SHADER_PROFILE_DXC vs_6_0)
-        else()
-            # Default to vertex shader for backward compatibility (no suffix)
-            set(SHADER_TYPE_SUFFIX "")
-            set(SHADER_PROFILE_DXC vs_6_0)
-        endif()
-        
-        # Construct output filename with shader type prefix included
-        # Extract base name and explicitly append the shader type suffix to ensure it's included
-        string(REGEX REPLACE "${SHADER_TYPE_SUFFIX}$" "" SHADER_BASE_NAME ${SHADER_NAME})
-        set(OUT_CSO ${SHADER_OUT_DIR}/${SHADER_BASE_NAME}${SHADER_TYPE_SUFFIX}.cso)
+    add_custom_command(
+        OUTPUT ${SHARED_OUT_CSO}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/$<CONFIG>/Materials"
+        COMMAND ${DXC_EXE}
+            -T ${SHADER_PROFILE_DXC}
+            -E ${SHADER_ENTRY}
+            -Fo ${SHARED_OUT_CSO}
+            ${SHADER}
+        DEPENDS ${SHADER}
+        BYPRODUCTS ${SHARED_OUT_CSO}
+        COMMENT "Compiling HLSL (dxc): ${SHADER_NAME} -> ${SHARED_OUT_CSO}"
+        VERBATIM
+    )
 
-        add_custom_command(
-            OUTPUT ${OUT_CSO}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADER_OUT_DIR}
-            COMMAND ${DXC_EXE}
-                -T ${SHADER_PROFILE_DXC}
-                -E ${SHADER_ENTRY}
-                -Fo ${OUT_CSO}
-                ${SHADER}
-            DEPENDS ${SHADER}
-            BYPRODUCTS ${OUT_CSO}
-            COMMENT "Compiling HLSL (dxc): ${SHADER_NAME} -> ${OUT_CSO}"
-            VERBATIM
-        )
+    # Create per-shader target
+    set(SHADER_TARGET_NAME ${SHARED_SHADER_TARGET_NAME}_${SHADER_BASE_NAME}${SHADER_TYPE_SUFFIX})
+    add_custom_target(${SHADER_TARGET_NAME} DEPENDS ${SHARED_OUT_CSO})
+    add_dependencies(${SHARED_SHADER_TARGET_NAME} ${SHADER_TARGET_NAME})
+endforeach()
 
-        # Use base name + suffix for unique target names
-        set(SHADER_TARGET_NAME_SHADER ${SHADER_TARGET_NAME}_${SHADER_BASE_NAME}${SHADER_TYPE_SUFFIX})
-        add_custom_target(${SHADER_TARGET_NAME_SHADER} DEPENDS ${OUT_CSO})
-        add_dependencies(${SHADER_TARGET_NAME} ${SHADER_TARGET_NAME_SHADER})
-    endforeach()
-    
-    # Ensure the executable waits for shaders to be built
-    add_dependencies(${TARGET_NAME} ${SHADER_TARGET_NAME})
-endfunction()
 
 # --- Example Projects ---
 
@@ -215,6 +197,6 @@ foreach(EXAMPLE_DIR ${EXAMPLE_DIRS})
     # Link to framework library
     target_link_libraries(${EXAMPLE_NAME} PRIVATE DXFramework)
     
-    # Compile shaders for this example
-    compile_shaders_for_target(${EXAMPLE_NAME} ${EXAMPLE_DIR})
+    # Ensure shaders are compiled before the example builds
+    add_dependencies(${EXAMPLE_NAME} ${SHARED_SHADER_TARGET_NAME})
 endforeach()

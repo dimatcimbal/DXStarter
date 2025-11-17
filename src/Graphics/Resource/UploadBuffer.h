@@ -2,7 +2,7 @@
 
 #include <utility>
 
-#include "ByteBuffer.h"
+#include "DeviceBuffer.h"
 #include "Resource.h"
 
 class BufferRange;
@@ -10,28 +10,23 @@ class BufferRange;
 /**
  * UploadBuffer CPU bound buffer class. Can map a region of the buffer for writing.
  */
-class UploadBuffer : public ByteBuffer {
+class UploadBuffer : public DeviceBuffer {
     friend BufferRange;
 
    public:
     UploadBuffer(D3D12_HEAP_TYPE Type,
+                 D3D12_RESOURCE_STATES State,
                  size_t _265byteAlignedBufferSize,
                  Microsoft::WRL::ComPtr<ID3D12Resource2> pResource)
-        : ByteBuffer(Type, _265byteAlignedBufferSize, std::move(pResource)) {}
+        : DeviceBuffer(Type, State, _265byteAlignedBufferSize, std::move(pResource)) {}
 
     // Prohibit copying
     UploadBuffer(UploadBuffer& other) = delete;
     UploadBuffer& operator=(UploadBuffer& other) = delete;
 
     // Allow moving
-    UploadBuffer(UploadBuffer&& other) noexcept : ByteBuffer(std::move(other)) {}
-
-    UploadBuffer& operator=(UploadBuffer&& other) noexcept {
-        if (this != &other) {
-            ByteBuffer::operator=(std::move(other));
-        }
-        return *this;
-    }
+    UploadBuffer(UploadBuffer&& other) = default;
+    UploadBuffer& operator=(UploadBuffer&& other) = default;
 
     /**
      * Maps a range of the buffer and returns a BufferRange object that will unmap it when it goes

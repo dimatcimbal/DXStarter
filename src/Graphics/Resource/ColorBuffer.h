@@ -8,7 +8,7 @@ class ColorBuffer : public Resource {
    public:
     ColorBuffer(D3D12_CPU_DESCRIPTOR_HANDLE RTVHandle,
                 Microsoft::WRL::ComPtr<ID3D12Resource2>&& pResource)
-        : Resource(std::move(pResource)), mRTVHandle{RTVHandle} {}
+        : Resource(D3D12_RESOURCE_STATE_COMMON, std::move(pResource)), mRTVHandle{RTVHandle} {}
 
     // Prohibit copying
     ColorBuffer(const ColorBuffer&) = delete;

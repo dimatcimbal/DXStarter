@@ -2,27 +2,28 @@
 
 #include "Resource.h"
 
-class ByteBuffer : public Resource {
+class DeviceBuffer : public Resource {
    public:
-    ByteBuffer(D3D12_HEAP_TYPE Type,
-               size_t _265byteAlignedBufferSize,
-               Microsoft::WRL::ComPtr<ID3D12Resource2> pResource)
-        : Resource(std::move(pResource)), mType(Type), mSize(_265byteAlignedBufferSize) {}
+    DeviceBuffer(D3D12_HEAP_TYPE Type,
+                 D3D12_RESOURCE_STATES State,
+                 size_t _265byteAlignedBufferSize,
+                 Microsoft::WRL::ComPtr<ID3D12Resource2> pResource)
+        : Resource(State, std::move(pResource)), mType(Type), mSize(_265byteAlignedBufferSize) {}
 
-    virtual ~ByteBuffer() = default;
+    virtual ~DeviceBuffer() = default;
 
     // Prohibit copying
-    ByteBuffer(const ByteBuffer& other) = delete;
-    ByteBuffer& operator=(const ByteBuffer& other) = delete;
+    DeviceBuffer(const DeviceBuffer& other) = delete;
+    DeviceBuffer& operator=(const DeviceBuffer& other) = delete;
 
     // Move constructor
-    ByteBuffer(ByteBuffer&& other) noexcept
+    DeviceBuffer(DeviceBuffer&& other) noexcept
         : Resource(std::move(other)),
           mType(std::exchange(other.mType, D3D12_HEAP_TYPE_DEFAULT)),
           mSize(std::exchange(other.mSize, 0)) {}
 
     // Move assignment operator
-    ByteBuffer& operator=(ByteBuffer&& other) noexcept {
+    DeviceBuffer& operator=(DeviceBuffer&& other) noexcept {
         if (this != &other) {
             // Handle only the derived class's own members
             mType = std::exchange(other.mType, D3D12_HEAP_TYPE_DEFAULT);

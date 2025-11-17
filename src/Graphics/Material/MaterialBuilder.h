@@ -2,16 +2,14 @@
 
 #include <d3d12.h>
 
-#include <map>
 #include <memory>
 
-#include "IO/Bytes.h"
+#include "IO/ByteBuffer.h"
 
 // Forward declarations
 class Device;
 class Material;
-
-enum class ShaderType { Vertex, Pixel, Hull, Domain, Geometry, RootSignature };
+class RootSignature;
 
 /**
  * Builder class for creating Material instances.
@@ -28,64 +26,49 @@ class MaterialBuilder {
 
     // Allow moving
     MaterialBuilder(MaterialBuilder&& other) noexcept
-        : mPSODesc(other.mPSODesc), mShaderBytecodes(std::move(other.mShaderBytecodes)) {}
+        : mPSODesc(std::exchange(other.mPSODesc, {})) {}
 
     MaterialBuilder& operator=(MaterialBuilder&& other) noexcept {
         if (this != &other) {
-            mPSODesc = other.mPSODesc;
-            mShaderBytecodes = std::move(other.mShaderBytecodes);
+            mPSODesc = std::exchange(other.mPSODesc, {});
         }
         return *this;
     }
 
-    MaterialBuilder& SetVertexShaderBytecode(std::unique_ptr<Bytes>&& Bytecode) {
-        mShaderBytecodes[ShaderType::Vertex] = std::move(Bytecode);
-        auto& bytecode = mShaderBytecodes[ShaderType::Vertex];
-        mPSODesc.VS.pShaderBytecode = bytecode->GetBuffer();
-        mPSODesc.VS.BytecodeLength = bytecode->GetSize();
+    MaterialBuilder& SetVertexShaderBytecode(ByteBuffer& Bytecode) {
+        mPSODesc.VS.pShaderBytecode = Bytecode.GetBuffer();
+        mPSODesc.VS.BytecodeLength = Bytecode.GetSize();
         return *this;
     }
 
-    MaterialBuilder& SetPixelShaderBytecode(std::unique_ptr<Bytes>&& Bytecode) {
-        mShaderBytecodes[ShaderType::Pixel] = std::move(Bytecode);
-        auto& bytecode = mShaderBytecodes[ShaderType::Pixel];
-        mPSODesc.PS.pShaderBytecode = bytecode->GetBuffer();
-        mPSODesc.PS.BytecodeLength = bytecode->GetSize();
+    MaterialBuilder& SetPixelShaderBytecode(ByteBuffer& Bytecode) {
+        mPSODesc.PS.pShaderBytecode = Bytecode.GetBuffer();
+        mPSODesc.PS.BytecodeLength = Bytecode.GetSize();
         return *this;
     }
 
-    MaterialBuilder& SetHullShaderBytecode(std::unique_ptr<Bytes>&& Bytecode) {
-        mShaderBytecodes[ShaderType::Hull] = std::move(Bytecode);
-        auto& bytecode = mShaderBytecodes[ShaderType::Hull];
-        mPSODesc.HS.pShaderBytecode = bytecode->GetBuffer();
-        mPSODesc.HS.BytecodeLength = bytecode->GetSize();
+    MaterialBuilder& SetHullShaderBytecode(ByteBuffer& Bytecode) {
+        mPSODesc.HS.pShaderBytecode = Bytecode.GetBuffer();
+        mPSODesc.HS.BytecodeLength = Bytecode.GetSize();
         return *this;
     }
 
-    MaterialBuilder& SetDomainShaderBytecode(std::unique_ptr<Bytes>&& Bytecode) {
-        mShaderBytecodes[ShaderType::Domain] = std::move(Bytecode);
-        auto& bytecode = mShaderBytecodes[ShaderType::Domain];
-        mPSODesc.DS.pShaderBytecode = bytecode->GetBuffer();
-        mPSODesc.DS.BytecodeLength = bytecode->GetSize();
+    MaterialBuilder& SetDomainShaderBytecode(ByteBuffer& Bytecode) {
+        mPSODesc.DS.pShaderBytecode = Bytecode.GetBuffer();
+        mPSODesc.DS.BytecodeLength = Bytecode.GetSize();
         return *this;
     }
 
-    MaterialBuilder& SetGeometryShaderBytecode(std::unique_ptr<Bytes>&& Bytecode) {
-        mShaderBytecodes[ShaderType::Geometry] = std::move(Bytecode);
-        auto& bytecode = mShaderBytecodes[ShaderType::Geometry];
-        mPSODesc.GS.pShaderBytecode = bytecode->GetBuffer();
-        mPSODesc.GS.BytecodeLength = bytecode->GetSize();
+    MaterialBuilder& SetGeometryShaderBytecode(ByteBuffer& Bytecode) {
+        mPSODesc.GS.pShaderBytecode = Bytecode.GetBuffer();
+        mPSODesc.GS.BytecodeLength = Bytecode.GetSize();
         return *this;
     }
 
-    MaterialBuilder& SetRootSigBytecode(std::unique_ptr<Bytes>&& Bytecode) {
-        mShaderBytecodes[ShaderType::RootSignature] = std::move(Bytecode);
-        return *this;
-    }
-
-    bool CreateMaterial(Device& Device, std::shared_ptr<Material>& OutMaterial);
+    bool CreateMaterial(Device& Device,
+                        RootSignature& RootSignature,
+                        std::shared_ptr<Material>& OutMaterial);
 
    private:
     D3D12_GRAPHICS_PIPELINE_STATE_DESC mPSODesc;
-    std::map<ShaderType, std::unique_ptr<Bytes>> mShaderBytecodes;
 };

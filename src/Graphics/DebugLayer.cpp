@@ -7,7 +7,7 @@ bool DebugLayer::Create(std::unique_ptr<DebugLayer>& OutDebugLayer) {
     // Enable the D3D12 debug layer
     Microsoft::WRL::ComPtr<ID3D12Debug6> d3dDebug;
     if (FAILED(D3D12GetDebugInterface(IID_PPV_ARGS(&d3dDebug)))) {
-        LOG_ERROR(L"\t\tFailed to get D3D12 debug interface.\n");
+        LOG_ERROR(L"Failed to get D3D12 debug interface.\n");
         return false;
     }
     d3dDebug->EnableDebugLayer();
@@ -15,7 +15,7 @@ bool DebugLayer::Create(std::unique_ptr<DebugLayer>& OutDebugLayer) {
     // Enable the DXGI debug layer
     Microsoft::WRL::ComPtr<IDXGIDebug1> dxgiDebug;
     if (FAILED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebug)))) {
-        LOG_ERROR(L"\t\tFailed to get DXGI debug interface.\n");
+        LOG_ERROR(L"Failed to get DXGI debug interface.\n");
         return false;
     }
 
@@ -30,7 +30,7 @@ bool DebugLayer::Create(std::unique_ptr<DebugLayer>& OutDebugLayer) {
 void DebugLayer::ReportLiveObjects() {
 #ifdef _DEBUG
     if (mDXGIDebug) {
-        LOG_INFO(L"\t\tReporting LIVE D3D12 objects:\n");
+        LOG_INFO(L"Reporting LIVE D3D12 objects:\n");
 
         // Report in detail but ignore internal objects
         DXGI_DEBUG_RLO_FLAGS DebugFlags = static_cast<DXGI_DEBUG_RLO_FLAGS>(
@@ -41,10 +41,10 @@ void DebugLayer::ReportLiveObjects() {
                 DXGI_DEBUG_ALL,
                 // with the specified flags
                 DebugFlags))) {
-            LOG_ERROR(L"\t\tFailed to report live objects.\n");
+            LOG_ERROR(L"Failed to report live objects.\n");
         }
     } else {
-        LOG_INFO(L"\t\tDXGI Debug interface is not initialized.\n");
+        LOG_INFO(L"DXGI Debug interface is not initialized.\n");
     }
 #endif
 }

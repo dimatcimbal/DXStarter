@@ -4,5 +4,5 @@
 
 class Paths {
    public:
-    static bool GetMaterialsDirAbsPath(std::filesystem::path& OutPath);
+    static bool GetMaterialsDir(std::filesystem::path& OutPath);
 };
