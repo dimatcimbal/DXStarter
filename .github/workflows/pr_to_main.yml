@@ -27,7 +27,7 @@ jobs:
       - name: Find clang-format and run check
         run: |
           $env:VCPKG_ROOT = "${{ steps.vswhere_vcpkg.outputs.vcpkg_root }}"
-          .\Housekeeper\housekeeper.ps1 -CheckFormat -Verbose
+          make check-format
         shell: pwsh
         
   build:
@@ -51,11 +51,11 @@ jobs:
       - name: Build Project (Debug)
         run: |
           $env:VCPKG_ROOT = "${{ steps.vswhere_vcpkg.outputs.vcpkg_root }}"
-          .\Housekeeper\housekeeper.ps1 -Build -Verbose -Config Debug
+          make build
         shell: pwsh
 
       - name: Build Project (Release)
         run: |
           $env:VCPKG_ROOT = "${{ steps.vswhere_vcpkg.outputs.vcpkg_root }}"
-          .\Housekeeper\housekeeper.ps1 -Build -Verbose -Config Release
+          make build PRESET=clang-prod
         shell: pwsh 

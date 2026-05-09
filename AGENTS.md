@@ -234,20 +234,19 @@ This section contains instructions for Cursor AI agents regarding formatting, DE
 
 #### Debug Build
 ```powershell
-.\keeper.ps1 -Build -Config Debug
+make build
 ```
 Builds the project in Debug configuration with debug symbols and no optimizations.
 
 #### Release Build
 ```powershell
-.\keeper.ps1 -Build -Config Release
+make release
 ```
 Builds the project in Release configuration with optimizations enabled.
 
 #### Rebuild (Clean + Build)
 ```powershell
-.\keeper.ps1 -Rebuild -Config Debug
-.\keeper.ps1 -Rebuild -Config Release
+make rebuild
 ```
 Cleans the build directory and performs a fresh build. This is the default action if no action is specified.
 
@@ -255,31 +254,31 @@ Cleans the build directory and performs a fresh build. This is the default actio
 
 #### Clean Build Artifacts
 ```powershell
-.\keeper.ps1 -Clean
+make clean
 ```
 Removes all build artifacts and temporary files to ensure a clean build state.
 
 #### Code Formatting
 ```powershell
-.\keeper.ps1 -Format
+make format
 ```
 Formats the source code according to the project's coding standards.
 
 #### Check Code Formatting
 ```powershell
-.\keeper.ps1 -CheckFormat
+make check-format
 ```
 Checks if source code is properly formatted without making changes. Returns an error if formatting issues are found.
 
 #### Generate Project Files
 ```powershell
-.\keeper.ps1 -Generate
+make configure
 ```
 Generates CMake project files without building. Useful for IDE integration.
 
 #### Install Dependencies
 ```powershell
-.\keeper.ps1 -Deps
+make deps
 ```
 Installs vcpkg dependencies specified in `vcpkg.json`.
 
@@ -302,26 +301,6 @@ Installs vcpkg dependencies specified in `vcpkg.json`.
 - **Graphics API**: DirectX 12 graphics engine
 - **Language**: C++ with Windows-specific code
 - **Build Output**: Generated files and executables go to `build/` directory
-
-### Housekeeper Submodule Management
-
-The `Housekeeper/` directory is a git submodule. The actual Housekeeper repository is located at `C:\Users\dtcimbal\code\Housekeeper`.
-
-**Workflow for updating Housekeeper:**
-1. Make changes in the actual repository: `C:\Users\dtcimbal\code\Housekeeper`
-2. Commit and push changes to the Housekeeper repository
-3. Update the submodule in DXStarter:
-   ```powershell
-   cd Housekeeper
-   git fetch origin
-   git checkout main  # or the branch/commit you want
-   git pull
-   cd ..
-   git add Housekeeper  # Stage the submodule update
-   ```
-4. The submodule reference will be updated in DXStarter's commit
-
-**Note**: Always work in the actual Housekeeper repository, not the submodule directory, when making changes to the build script.
 
 ### DEVLOG.md Structure and Format
 

@@ -1,4 +1,4 @@
-﻿// Examples/PlainTriangle
+// Example/WorldSpace
 #include <Windows.h>
 
 #include <filesystem>
@@ -8,10 +8,10 @@
 #include "Graphics/Material/Material.h"
 #include "Graphics/Material/MaterialBuilder.h"
 #include "Graphics/Renderer.h"
-#include "Scene/Node.h"
 #include "IO/ByteBuffer.h"
 #include "IO/Paths.h"
 #include "Logging/Logging.h"
+#include "Scene/Node.h"
 #include "Window/MainWindow.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
@@ -44,7 +44,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     std::unique_ptr<ByteBuffer> vertexShaderBytecode;
-    if (!ByteBuffer::Create(materialDir / "LocalPosition.vertx.cso", vertexShaderBytecode)) {
+    if (!ByteBuffer::Create(materialDir / "WorldPosition.vertx.cso", vertexShaderBytecode)) {
         LOG_ERROR(L"Failed to load vertex shader.");
         MainWindow::ShowErrorMessageBox();
         return -1;
@@ -58,7 +58,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     std::unique_ptr<ByteBuffer> rootSignBytecode;
-    if (!ByteBuffer::Create(materialDir / "Base.rsign.cso", rootSignBytecode)) {
+    if (!ByteBuffer::Create(materialDir / "WorldPosition.rsign.cso", rootSignBytecode)) {
         LOG_ERROR(L"Failed to load root signature.");
         MainWindow::ShowErrorMessageBox();
         return -1;
@@ -95,12 +95,38 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         return -1;
     }
 
-    std::unique_ptr<Node> scene;
-    if (!device->CreateMeshNode(materialId, *tri, scene)) {
+    // Starting with the deepest node
+    std::unique_ptr<Node> rotatedTwo;
+    if (!device->CreateMeshNode(materialId, *tri, rotatedTwo)) {
         LOG_ERROR(L"Failed to create Node.\n");
         MainWindow::ShowErrorMessageBox();
         return -1;
     }
+    rotatedTwo->GetTransform().Translate(Vector3(0.3, 0., 0.));
+    rotatedTwo->GetTransform().RotateZ(90);
+
+    // Tri node One
+    std::unique_ptr<Node> rotatedOne;
+    if (!device->CreateMeshNode(materialId, *tri, rotatedOne)) {
+        LOG_ERROR(L"Failed to create Node.\n");
+        MainWindow::ShowErrorMessageBox();
+        return -1;
+    }
+    rotatedOne->GetTransform().Translate(Vector3(0.3, 0., 0.));
+    rotatedOne->GetTransform().RotateZ(90);
+    rotatedOne->AddChild(std::move(rotatedTwo));
+
+    // Straight node
+    std::unique_ptr<Node> straightNode;
+    if (!device->CreateMeshNode(materialId, *tri, straightNode)) {
+        LOG_ERROR(L"Failed to create Node.\n");
+        MainWindow::ShowErrorMessageBox();
+        return -1;
+    }
+
+    std::unique_ptr<Node> scene = std::make_unique<Node>();
+    scene->AddChild(std::move(rotatedOne));
+    scene->AddChild(std::move(straightNode));
 
     // The Renderer
     std::unique_ptr<Renderer> renderer;
