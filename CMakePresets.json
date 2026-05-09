@@ -1,0 +1,61 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-windows",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "msvc-dev",
+            "displayName": "MSVC Debug",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build-msvc-dev",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "msvc-prod",
+            "displayName": "MSVC Release",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build-msvc-prod",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "clang-dev",
+            "displayName": "Clang Debug",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build-clang-dev",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang-cl",
+                "CMAKE_CXX_COMPILER": "clang-cl",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "clang-prod",
+            "displayName": "Clang Release",
+            "inherits": "base",
+            "binaryDir": "${sourceDir}/build-clang-prod",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang-cl",
+                "CMAKE_CXX_COMPILER": "clang-cl",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "msvc-dev",   "configurePreset": "msvc-dev"   },
+        { "name": "msvc-prod",  "configurePreset": "msvc-prod"  },
+        { "name": "clang-dev",  "configurePreset": "clang-dev"  },
+        { "name": "clang-prod", "configurePreset": "clang-prod" }
+    ]
+}

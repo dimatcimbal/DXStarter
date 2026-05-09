@@ -10,10 +10,10 @@
 #include "Graphics/Material/MaterialBuilder.h"
 #include "Graphics/Mesh/Mesh.h"
 #include "Graphics/Renderer.h"
-#include "Scene/Node.h"
 #include "IO/ByteBuffer.h"
 #include "IO/Paths.h"
 #include "Logging/Logging.h"
+#include "Scene/Node.h"
 #include "Window/MainWindow.h"
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {

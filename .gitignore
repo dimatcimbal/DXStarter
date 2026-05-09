@@ -20,6 +20,12 @@ mono_crash.*
 # Build results
 **/[Bb]uild/*
 **/[Bb]in/*
+build-*/
+cmake-build-*/
+compile_commands.json
+
+# JetBrains IDEs
+.idea/
 # Uncomment if you have tasks that rely on *.refresh files to move binaries
 # (https://github.com/github/gitignore/pull/3736)
 #!**/[Bb]in/*.refresh
@@ -383,13 +389,8 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# VS Code files for those working on multiple tools
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
+# VS Code
+.vscode/
 
 # Local History for Visual Studio Code
 .history/

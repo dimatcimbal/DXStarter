@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.21)
 
 # this is our project name
 project(DXStarter VERSION 0.1.0)
@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 20) # enforce /std:c++20
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Examples)
+set(EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 set(MATERIALS_DIR ${EXAMPLES_DIR}/Materials)
 # end of config
 
@@ -29,7 +29,8 @@ add_library(DXFramework STATIC ${FRAMEWORK_SRCS})
 
 # configure includes for framework
 target_include_directories(DXFramework PUBLIC
-    ${SRC_DIR}
+    $<BUILD_INTERFACE:${SRC_DIR}>
+    $<INSTALL_INTERFACE:include>
     ${D3DX12_INCLUDE_DIR}
 )
 
@@ -62,17 +63,19 @@ target_compile_definitions(DXFramework PUBLIC
 
 # Enable fast floating-point model for all builds
 target_compile_options(DXFramework PUBLIC
-    $<$<CXX_COMPILER_ID:MSVC>:/fp:fast>
+    $<$<BOOL:${MSVC}>:/fp:fast>
 )
 
 # --- HLSL shader compilation (requires DXC for root signatures) ---
 
 # Find dxc.exe (Windows SDK). Required for root signature compilation.
+# find_program doesn't expand globs, so resolve versioned SDK paths first.
+file(GLOB _DXC_SDK_HINTS "C:/Program Files (x86)/Windows Kits/10/bin/10.0.*/x64")
 find_program(DXC_EXE dxc
     HINTS
         "$ENV{WindowsSdkDir}/bin/$ENV{WindowsSDKVersion}/x64"
         "C:/Program Files (x86)/Windows Kits/10/bin/x64"
-        "C:/Program Files (x86)/Windows Kits/10/bin/10.0.*/x64"
+        ${_DXC_SDK_HINTS}
     REQUIRED
 )
 
@@ -133,7 +136,6 @@ foreach(SHADER ${ALL_SHADERS})
             -Fo ${SHARED_OUT_CSO}
             ${SHADER}
         DEPENDS ${SHADER}
-        BYPRODUCTS ${SHARED_OUT_CSO}
         COMMENT "Compiling HLSL (dxc): ${SHADER_NAME} -> ${SHARED_OUT_CSO}"
         VERBATIM
     )
@@ -161,9 +163,7 @@ foreach(EXAMPLE_DIR ${EXAMPLE_DIRS})
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_DIR} NAME)
     
     # Find source files in the example directory
-    # Support both "Src" and "src" directory names
     set(EXAMPLE_SRC_PATHS
-        "${EXAMPLE_DIR}/Src"
         "${EXAMPLE_DIR}/src"
     )
     
